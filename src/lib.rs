@@ -9,4 +9,5 @@ pub mod crypto;
 pub mod circuit;
 pub mod inputs;
 pub mod server;
+pub mod proxy;
 pub mod util;
