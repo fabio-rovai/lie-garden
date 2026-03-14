@@ -36,7 +36,10 @@ pub fn verify_knowledge(group: &LieGroup, public: &GroupElement, proof: &ZkProof
         .collect();
 
     proof.response.iter().zip(expected.iter())
-        .all(|(a, b)| (a - b).abs() < 1e-6)
+        .all(|(a, b)| {
+            let mag = a.abs().max(b.abs());
+            (a - b).abs() < mag * 1e-8 + 1e-12
+        })
 }
 
 /// Derive nonce from secret via PRF (not invertible — preserves zero-knowledge).

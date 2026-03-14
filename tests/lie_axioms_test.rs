@@ -8,8 +8,8 @@ fn arb_so3_element() -> impl Strategy<Value = GroupElement> {
     })
 }
 
-fn arb_se3_element() -> impl Strategy<Value = GroupElement> {
-    // SE with n=3: 3x3 matrices, algebra_dim=3 (1 rotation + 2 translation)
+fn arb_se2_element() -> impl Strategy<Value = GroupElement> {
+    // SE(2): n=3 → 3×3 matrices, algebra_dim=3 (1 rotation + 2 translation)
     prop::array::uniform3(-1.0f64..1.0f64).prop_map(|coeffs| {
         let g = LieGroup::new(GroupType::SE, 3);
         g.exp(&coeffs.to_vec())
@@ -76,17 +76,17 @@ proptest! {
         prop_assert!(g.is_member(&elem), "exp() must always produce on-group element");
     }
 
-    // === SE(3) tests (2D rigid motions, 3x3 matrices) ===
+    // === SE(2) tests (2D rigid motions, 3×3 matrices, n=3) ===
 
     #[test]
-    fn se3_closure(a in arb_se3_element(), b in arb_se3_element()) {
+    fn se2_closure(a in arb_se2_element(), b in arb_se2_element()) {
         let g = LieGroup::new(GroupType::SE, 3);
         let c = g.multiply(&a, &b);
         prop_assert!(g.is_member(&c), "SE product must be on-group");
     }
 
     #[test]
-    fn se3_identity(a in arb_se3_element()) {
+    fn se2_identity(a in arb_se2_element()) {
         let g = LieGroup::new(GroupType::SE, 3);
         let e = g.identity();
         let ae = g.multiply(&a, &e);
@@ -96,7 +96,7 @@ proptest! {
     }
 
     #[test]
-    fn se3_inverse(a in arb_se3_element()) {
+    fn se2_inverse(a in arb_se2_element()) {
         let g = LieGroup::new(GroupType::SE, 3);
         let a_inv = g.inverse(&a);
         let should_be_id = g.multiply(&a, &a_inv);
@@ -104,7 +104,7 @@ proptest! {
     }
 
     #[test]
-    fn se3_associativity(a in arb_se3_element(), b in arb_se3_element(), c in arb_se3_element()) {
+    fn se2_associativity(a in arb_se2_element(), b in arb_se2_element(), c in arb_se2_element()) {
         let g = LieGroup::new(GroupType::SE, 3);
         let ab_c = g.multiply(&g.multiply(&a, &b), &c);
         let a_bc = g.multiply(&a, &g.multiply(&b, &c));
@@ -112,7 +112,7 @@ proptest! {
     }
 
     #[test]
-    fn se3_exp_always_on_group(coeffs in prop::collection::vec(-10.0f64..10.0f64, 3)) {
+    fn se2_exp_always_on_group(coeffs in prop::collection::vec(-10.0f64..10.0f64, 3)) {
         let g = LieGroup::new(GroupType::SE, 3);
         let elem = g.exp(&coeffs);
         prop_assert!(g.is_member(&elem), "SE exp() must always produce on-group element");

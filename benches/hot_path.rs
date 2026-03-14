@@ -25,10 +25,10 @@ fn bench_exp(c: &mut Criterion) {
         b.iter(|| so4.exp(black_box(&coeffs_6)))
     });
 
-    let se3 = LieGroup::new(GroupType::SE, 3);
-    let coeffs_se3 = vec![0.3, 0.5, -0.2];
-    group.bench_function("SE3", |b| {
-        b.iter(|| se3.exp(black_box(&coeffs_se3)))
+    let se2 = LieGroup::new(GroupType::SE, 3); // SE(2): 3×3 matrices
+    let coeffs_se2 = vec![0.3, 0.5, -0.2];
+    group.bench_function("SE2", |b| {
+        b.iter(|| se2.exp(black_box(&coeffs_se2)))
     });
 
     let gl2 = LieGroup::new(GroupType::GL, 2);
@@ -68,11 +68,11 @@ fn bench_multiply(c: &mut Criterion) {
         b_iter.iter(|| so3.multiply(black_box(&a), black_box(&b)))
     });
 
-    let se3 = LieGroup::new(GroupType::SE, 3);
-    let a_se = se3.exp(&vec![0.3, 0.5, -0.2]);
-    let b_se = se3.exp(&vec![-0.1, 0.2, 0.4]);
-    group.bench_function("SE3", |b_iter| {
-        b_iter.iter(|| se3.multiply(black_box(&a_se), black_box(&b_se)))
+    let se2 = LieGroup::new(GroupType::SE, 3); // SE(2): 3×3 matrices
+    let a_se = se2.exp(&vec![0.3, 0.5, -0.2]);
+    let b_se = se2.exp(&vec![-0.1, 0.2, 0.4]);
+    group.bench_function("SE2", |b_iter| {
+        b_iter.iter(|| se2.multiply(black_box(&a_se), black_box(&b_se)))
     });
 
     group.finish();
@@ -93,10 +93,10 @@ fn bench_inverse(c: &mut Criterion) {
         b.iter(|| gl2.inverse(black_box(&a_gl)))
     });
 
-    let se3 = LieGroup::new(GroupType::SE, 3);
-    let a_se = se3.exp(&vec![0.3, 0.5, -0.2]);
-    group.bench_function("SE3", |b| {
-        b.iter(|| se3.inverse(black_box(&a_se)))
+    let se2 = LieGroup::new(GroupType::SE, 3); // SE(2): 3×3 matrices
+    let a_se = se2.exp(&vec![0.3, 0.5, -0.2]);
+    group.bench_function("SE2", |b| {
+        b.iter(|| se2.inverse(black_box(&a_se)))
     });
 
     group.finish();
@@ -159,11 +159,11 @@ fn bench_full_step_pipeline(c: &mut Criterion) {
         })
     });
 
-    // SE(3) pipeline
-    let se3 = LieGroup::new(GroupType::SE, 3);
-    let circuit_se = Circuit::new(se3.clone(), None);
-    let state_se = se3.identity();
-    group.bench_function("SE3", |b| {
+    // SE(2) pipeline (n=3 → 3×3 matrices)
+    let se2 = LieGroup::new(GroupType::SE, 3);
+    let circuit_se = Circuit::new(se2.clone(), None);
+    let state_se = se2.identity();
+    group.bench_function("SE2", |b| {
         b.iter(|| {
             let coeffs = map_to_algebra(black_box("agent output text"), circuit_se.group.algebra_dim(), 1.0);
             let constrained = circuit_se.constrain_algebra(&coeffs);

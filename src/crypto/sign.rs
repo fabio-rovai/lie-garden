@@ -42,7 +42,10 @@ pub fn verify(group: &LieGroup, message: &[u8], public: &GroupElement, sig: &Sig
         .collect();
 
     sig.s.iter().zip(expected_s.iter())
-        .all(|(a, b)| (a - b).abs() < 1e-6)
+        .all(|(a, b)| {
+            let mag = a.abs().max(b.abs());
+            (a - b).abs() < mag * 1e-8 + 1e-12
+        })
 }
 
 fn hash_challenge(r: &GroupElement, message: &[u8]) -> f64 {

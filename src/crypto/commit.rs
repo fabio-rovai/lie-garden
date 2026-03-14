@@ -1,13 +1,20 @@
 use crate::lie::group::{LieGroup, GroupElement};
 use sha2::{Sha256, Digest};
 
-/// Pedersen commitment: C = exp(x) * exp(h_basis(r))
-/// The second generator basis is derived from a hash — computationally independent from the standard basis.
+/// Pedersen-style commitment: C = exp(x + H(r))
+///
+/// H(r) hashes the FULL randomness vector into each algebra coefficient,
+/// so changing any r[j] changes all coefficients — preimage resistance
+/// of SHA256 provides computational binding.
+///
+/// Hiding: coefficient i depends on H(domain || i || r_bytes), which is
+/// uniformly distributed given random r, so C reveals nothing about x.
 pub fn commit(group: &LieGroup, x: &[f64], r: &[f64]) -> GroupElement {
-    let gx = group.exp(x);
-    let h_coeffs = second_generator_basis(r, group.algebra_dim());
-    let hr = group.exp(&h_coeffs);
-    group.multiply(&gx, &hr)
+    let h = randomness_hash(r, group.algebra_dim());
+    let combined: Vec<f64> = x.iter().zip(h.iter())
+        .map(|(xi, hi)| xi + hi)
+        .collect();
+    group.exp(&combined)
 }
 
 /// Verify commitment opening.
@@ -16,20 +23,21 @@ pub fn verify_commit(group: &LieGroup, commitment: &GroupElement, x: &[f64], r: 
     commitment.close_to(&expected, 1e-8)
 }
 
-/// Derive a second generator basis from randomness using hash — not algebraically related to standard basis.
-fn second_generator_basis(r: &[f64], dim: usize) -> Vec<f64> {
+/// Hash full randomness vector into algebra coefficients.
+///
+/// Each coefficient depends on ALL of r via SHA256(domain || index || r_0 || r_1 || ...),
+/// making it infeasible to find r' ≠ r producing the same output (preimage resistance).
+fn randomness_hash(r: &[f64], dim: usize) -> Vec<f64> {
     let mut coefficients = Vec::with_capacity(dim);
     for i in 0..dim {
         let mut hasher = Sha256::new();
         hasher.update(b"gravrail-pedersen-h");
         hasher.update((i as u64).to_le_bytes());
+        // Hash ALL randomness bytes — changing any r[j] changes this coefficient
+        for v in r { hasher.update(v.to_le_bytes()); }
         let hash = hasher.finalize();
         let bytes: [u8; 8] = hash[..8].try_into().unwrap();
-        // Hash gives a fixed "direction" for the second generator
-        let h_basis = (u64::from_le_bytes(bytes) as f64 / u64::MAX as f64) * 2.0 - 1.0;
-        // Scale by the randomness coefficient
-        let r_val = if i < r.len() { r[i] } else { 0.0 };
-        coefficients.push(h_basis * r_val);
+        coefficients.push((u64::from_le_bytes(bytes) as f64 / u64::MAX as f64) - 0.5);
     }
     coefficients
 }

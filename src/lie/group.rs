@@ -62,8 +62,10 @@ impl LieGroup {
         match self.group_type {
             GroupType::SO => self.n * (self.n - 1) / 2,
             GroupType::SE => {
-                // SE(n) embeds in (n)x(n) matrices: rotation part + translation part.
-                // For SE(3): n=4, rotation in SO(3) has dim 3, translation has dim 3 → 6.
+                // SE uses n×n homogeneous matrices. n is the matrix dim, not the space dim.
+                // SE(k) in standard math notation uses (k+1)×(k+1) matrices, so pass n=k+1.
+                // Example: SE(3) → n=4, rot in SO(3) dim=3, translation dim=3, total=6.
+                // Example: SE(2) → n=3, rot in SO(2) dim=1, translation dim=2, total=3.
                 let rot_n = self.n - 1;
                 rot_n * (rot_n - 1) / 2 + (self.n - 1)
             }
@@ -399,20 +401,41 @@ fn so3_log(r: &DMatrix<f64>) -> DMatrix<f64> {
     (r - r.transpose()) * factor
 }
 
-/// Matrix exponential via Pade approximation (scaling and squaring).
+/// Matrix exponential via (6,6) Padé approximant with scaling and squaring.
+///
+/// Coefficients: b_j = (12-j)! 6! / (12! j! (6-j)!) for p=6.
+/// Error at ||X|| ≤ 0.5: O(x^13) ≈ 2e-14 (near machine precision).
 fn matrix_exp(m: &DMatrix<f64>) -> DMatrix<f64> {
     let n = m.nrows();
     let norm = m.norm();
 
     let s = (norm / 0.5).log2().ceil().max(0.0) as u32;
-    let scaled = m / (2.0_f64.powi(s as i32));
+    let a = m / (2.0_f64.powi(s as i32));
 
     let id = DMatrix::<f64>::identity(n, n);
-    let m2 = &scaled * &scaled;
-    let half = &scaled * 0.5;
-    let twelfth = &m2 * (1.0 / 12.0);
-    let numer = &id + &half + &twelfth;
-    let denom = &id - &half + &twelfth;
+    let a2 = &a * &a;
+    let a4 = &a2 * &a2;
+    let a6 = &a4 * &a2;
+
+    // (6,6) Padé coefficients
+    const B: [f64; 7] = [
+        1.0,
+        0.5,
+        5.0 / 44.0,       // b_2
+        1.0 / 66.0,       // b_3
+        1.0 / 792.0,      // b_4
+        1.0 / 15840.0,    // b_5
+        1.0 / 665280.0,   // b_6
+    ];
+
+    // Even part: V = b_0 I + b_2 A² + b_4 A⁴ + b_6 A⁶
+    let v = &id * B[0] + &a2 * B[2] + &a4 * B[4] + &a6 * B[6];
+    // Odd part: U = A(b_1 I + b_3 A² + b_5 A⁴)
+    let u = &a * (&id * B[1] + &a2 * B[3] + &a4 * B[5]);
+
+    // exp(A) ≈ (V - U)⁻¹ (V + U)
+    let numer = &v + &u;
+    let denom = &v - &u;
 
     let mut result = denom.try_inverse().unwrap_or(id.clone()) * numer;
 
@@ -423,24 +446,30 @@ fn matrix_exp(m: &DMatrix<f64>) -> DMatrix<f64> {
     result
 }
 
-/// Matrix logarithm via inverse scaling and squaring (general case).
+/// Matrix logarithm via inverse scaling and squaring.
+///
+/// Uses 11-term Taylor series: log(I+X) = X - X²/2 + X³/3 - ... + X¹¹/11
+/// At ||X|| ≤ 0.5: truncation error ≈ 0.5^12/12 ≈ 2e-5 per sqrt level.
+/// Combined with scaling (||X|| ≤ 0.1 after enough sqrts), error ≈ 1e-12.
 fn matrix_log(m: &DMatrix<f64>) -> DMatrix<f64> {
-    let n = m.nrows();
-    let id = DMatrix::<f64>::identity(n, n);
+    let id = DMatrix::<f64>::identity(m.nrows(), m.nrows());
 
     let mut a = m.clone();
     let mut k = 0u32;
-    while (&a - &id).norm() > 0.5 && k < 20 {
+    while (&a - &id).norm() > 0.1 && k < 30 {
         a = matrix_sqrt(&a);
         k += 1;
     }
 
-    let diff = &a - &id;
-    let diff2 = &diff * &diff;
-    let diff3 = &diff2 * &diff;
-    let diff4 = &diff3 * &diff;
-    let diff5 = &diff4 * &diff;
-    let result = &diff - &diff2 * 0.5 + &diff3 * (1.0 / 3.0) - &diff4 * 0.25 + &diff5 * 0.2;
+    // Taylor series: log(I+X) = Σ (-1)^(n+1) X^n / n for n=1..11
+    let x = &a - &id;
+    let mut power = x.clone();
+    let mut result = x.clone();
+    for n in 2..=11u32 {
+        power = &power * &x;
+        let sign = if n % 2 == 0 { -1.0 } else { 1.0 };
+        result += &power * (sign / n as f64);
+    }
 
     result * 2.0_f64.powi(k as i32)
 }
