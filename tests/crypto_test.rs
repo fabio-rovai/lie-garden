@@ -27,9 +27,7 @@ proptest! {
     ) {
         let g = LieGroup::new(GroupType::SO, 3);
         let (_pub_a, _pub_b, shared_a, shared_b) = diffie_hellman(&g, &a, &b);
-        for (x, y) in shared_a.matrix().iter().zip(shared_b.matrix().iter()) {
-            prop_assert!((x - y).abs() < 1e-8, "DH shared secret must agree");
-        }
+        prop_assert!(shared_a.close_to(&shared_b, 1e-8), "DH shared secret must agree");
     }
 }
 
@@ -40,6 +38,17 @@ fn zk_proof_valid() {
     let public = g.exp(&secret);
     let proof = prove_knowledge(&g, &secret, &public);
     assert!(verify_knowledge(&g, &public, &proof));
+}
+
+#[test]
+fn zk_proof_wrong_public_key() {
+    let g = LieGroup::new(GroupType::SO, 3);
+    let secret = vec![0.3, -0.2, 0.5];
+    let public = g.exp(&secret);
+    let proof = prove_knowledge(&g, &secret, &public);
+    // Verify against a different public key
+    let wrong_public = g.exp(&vec![0.1, 0.1, 0.1]);
+    assert!(!verify_knowledge(&g, &wrong_public, &proof));
 }
 
 #[test]
@@ -59,4 +68,24 @@ fn schnorr_signature_wrong_message() {
     let public = g.exp(&secret);
     let sig = sign(&g, b"hello", &secret);
     assert!(!verify(&g, b"world", &public, &sig));
+}
+
+#[test]
+fn schnorr_signature_wrong_key() {
+    let g = LieGroup::new(GroupType::SO, 3);
+    let secret = vec![0.4, 0.1, -0.3];
+    let sig = sign(&g, b"hello", &secret);
+    let wrong_public = g.exp(&vec![0.1, 0.2, 0.3]);
+    assert!(!verify(&g, b"hello", &wrong_public, &sig));
+}
+
+#[test]
+fn commitment_wrong_randomness() {
+    let g = LieGroup::new(GroupType::SO, 3);
+    let x = vec![0.3, -0.2, 0.5];
+    let r = vec![0.1, 0.4, -0.1];
+    let c = commit(&g, &x, &r);
+    // Correct value but wrong randomness
+    let wrong_r = vec![0.9, 0.9, 0.9];
+    assert!(!verify_commit(&g, &c, &x, &wrong_r));
 }
