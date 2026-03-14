@@ -44,14 +44,14 @@ impl Default for WatchdogConfig {
 /// The proxy holds this to check liveness, send pings, and kill the watchdog.
 /// Dropping all senders (or calling `kill()`) causes the watchdog loop to exit.
 pub struct WatchdogHandle {
-    killed: Arc<AtomicBool>,
-    last_watchdog_seq: Arc<AtomicU64>,
+    pub killed: Arc<AtomicBool>,
+    pub last_watchdog_seq: Arc<AtomicU64>,
     /// Sender for proxy -> watchdog pings.
-    ping_tx: mpsc::Sender<Heartbeat>,
+    pub ping_tx: mpsc::Sender<Heartbeat>,
     /// Receiver for watchdog -> proxy heartbeats.
-    heartbeat_rx: mpsc::Receiver<Heartbeat>,
+    pub heartbeat_rx: mpsc::Receiver<Heartbeat>,
     /// HMAC key shared with the watchdog.
-    hmac_key: Vec<u8>,
+    pub hmac_key: Vec<u8>,
 }
 
 impl WatchdogHandle {
