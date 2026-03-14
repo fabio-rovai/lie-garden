@@ -1,0 +1,64 @@
+use gravrail::lie::group::{LieGroup, GroupType, GroupElement};
+use proptest::prelude::*;
+
+fn arb_so3_element() -> impl Strategy<Value = GroupElement> {
+    prop::array::uniform3(-1.0f64..1.0f64).prop_map(|coeffs| {
+        let g = LieGroup::new(GroupType::SO, 3);
+        g.exp(&coeffs.to_vec())
+    })
+}
+
+proptest! {
+    #[test]
+    fn so3_closure(a in arb_so3_element(), b in arb_so3_element()) {
+        let g = LieGroup::new(GroupType::SO, 3);
+        let c = g.multiply(&a, &b);
+        prop_assert!(g.is_member(&c), "Product must be on-group");
+    }
+
+    #[test]
+    fn so3_identity(a in arb_so3_element()) {
+        let g = LieGroup::new(GroupType::SO, 3);
+        let e = g.identity();
+        let ae = g.multiply(&a, &e);
+        let ea = g.multiply(&e, &a);
+        prop_assert!(elements_close(&ae, &a, 1e-10));
+        prop_assert!(elements_close(&ea, &a, 1e-10));
+    }
+
+    #[test]
+    fn so3_inverse(a in arb_so3_element()) {
+        let g = LieGroup::new(GroupType::SO, 3);
+        let a_inv = g.inverse(&a);
+        let should_be_id = g.multiply(&a, &a_inv);
+        prop_assert!(elements_close(&should_be_id, &g.identity(), 1e-10));
+    }
+
+    #[test]
+    fn so3_associativity(a in arb_so3_element(), b in arb_so3_element(), c in arb_so3_element()) {
+        let g = LieGroup::new(GroupType::SO, 3);
+        let ab_c = g.multiply(&g.multiply(&a, &b), &c);
+        let a_bc = g.multiply(&a, &g.multiply(&b, &c));
+        prop_assert!(elements_close(&ab_c, &a_bc, 1e-10));
+    }
+
+    #[test]
+    fn so3_exp_log_roundtrip(coeffs in prop::collection::vec(-0.5f64..0.5f64, 3)) {
+        let g = LieGroup::new(GroupType::SO, 3);
+        let elem = g.exp(&coeffs);
+        let recovered = g.log(&elem);
+        let re_exp = g.exp(&recovered);
+        prop_assert!(elements_close(&elem, &re_exp, 1e-8));
+    }
+
+    #[test]
+    fn so3_exp_always_on_group(coeffs in prop::collection::vec(-10.0f64..10.0f64, 3)) {
+        let g = LieGroup::new(GroupType::SO, 3);
+        let elem = g.exp(&coeffs);
+        prop_assert!(g.is_member(&elem), "exp() must always produce on-group element");
+    }
+}
+
+fn elements_close(a: &GroupElement, b: &GroupElement, tol: f64) -> bool {
+    a.matrix().iter().zip(b.matrix().iter()).all(|(x, y)| (x - y).abs() < tol)
+}
