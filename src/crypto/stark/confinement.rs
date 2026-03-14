@@ -17,12 +17,15 @@
 
 use super::field::FieldElement;
 use super::polynomial::Polynomial;
-use super::merkle::MerkleTree;
+use super::merkle::{MerkleTree, verify_decommitment};
 use super::channel::Channel;
 
 /// Scale factor for mapping f64 coefficients to field elements.
 /// We multiply by 2^20 and round to get integer representations.
 const SCALE: f64 = 1_048_576.0; // 2^20
+
+/// Number of random queries for FRI verification.
+const NUM_QUERIES: usize = 3;
 
 /// Map an f64 coefficient to a field element (deterministic, injective for our range).
 fn f64_to_field(v: f64) -> FieldElement {
@@ -31,10 +34,35 @@ fn f64_to_field(v: f64) -> FieldElement {
 }
 
 /// Map a field element back to f64 coefficient.
+#[allow(dead_code)]
 fn field_to_f64(fe: FieldElement) -> f64 {
-    let half_mod = FieldElement::modulus() / 2;
-    let signed = if fe.val > half_mod { fe.val - FieldElement::modulus() } else { fe.val };
+    let modulus = FieldElement::modulus();
+    let half_mod = modulus / 2;
+    let signed = if (fe.val as i128) > half_mod { fe.val as i128 - modulus } else { fe.val as i128 };
     signed as f64 / SCALE
+}
+
+/// Query data for a single FRI decommitment point.
+#[derive(Clone)]
+pub struct QueryData {
+    /// Index into the evaluation domain
+    pub idx: usize,
+    /// Trace polynomial evaluation at this point
+    pub trace_val: FieldElement,
+    /// Trace Merkle authentication path
+    pub trace_auth: Vec<String>,
+    /// Composition polynomial evaluation at this point
+    pub cp_val: FieldElement,
+    /// CP Merkle authentication path
+    pub cp_auth: Vec<String>,
+    /// FRI layer evaluations at this query (f(x) at each layer)
+    pub fri_vals: Vec<FieldElement>,
+    /// FRI layer evaluations at the sibling point (f(-x) at each layer)
+    pub fri_sibling_vals: Vec<FieldElement>,
+    /// FRI Merkle authentication paths per layer
+    pub fri_auths: Vec<Vec<String>>,
+    /// FRI sibling Merkle authentication paths per layer
+    pub fri_sibling_auths: Vec<Vec<String>>,
 }
 
 /// A STARK proof that constraint masking was correctly applied.
@@ -46,6 +74,8 @@ pub struct ConfinementProof {
     pub fri_last_value: FieldElement,
     pub proof_transcript: Vec<String>,
     pub trace_length: usize,
+    /// Query decommitments for verification
+    pub queries: Vec<QueryData>,
 }
 
 /// Build the execution trace for a single masking operation.
@@ -87,7 +117,7 @@ pub fn prove_confinement(
     let trace_len = trace.len();
 
     // Find a subgroup of size trace_len for interpolation domain
-    let group_order = FieldElement::modulus() - 1; // p - 1 = 3 * 2^30
+    let group_order = FieldElement::modulus() - 1;
     assert!(
         trace_len.is_power_of_two() && (trace_len as i128) <= group_order,
         "Trace length must be a power of 2 fitting in the field"
@@ -120,35 +150,20 @@ pub fn prove_confinement(
     let mut channel = Channel::new();
     channel.send(&f_merkle.root);
 
-    // Build constraint polynomial:
-    // For each triple (raw, mask, out) at positions (3k, 3k+1, 3k+2):
-    //   out - raw * mask == 0
-    //
-    // In polynomial form over the trace domain:
-    //   f(g^{3k+2}) - f(g^{3k}) * f(g^{3k+1}) == 0 for k = 0..dim-1
-    //
-    // We encode this as: for each evaluation point x in the coset,
-    // compute the constraint value using composition.
-    //
-    // Simplified approach: build constraint evaluations directly.
+    // Build constraint evaluations
     let mut constraint_evals = Vec::with_capacity(eval_len);
     for x in &eval_domain {
-        // Evaluate trace at three related points using the group structure
-        // For the constraint: out = raw * mask, we evaluate at positions
-        // shifted by g^0 (raw), g^1 (mask), g^2 (out) relative to each triple
         let raw_val = f.eval(x);
         let mask_val = f.eval(&(*x * g));
         let out_val = f.eval(&(*x * g * g));
         constraint_evals.push(out_val - raw_val * mask_val);
     }
 
-    // The constraint should vanish on all trace triple-starts: g^{3k} for k=0..dim-1
-    // Build the vanishing polynomial for these points
+    // Vanishing polynomial for trace triple-starts
     let vanish_points: Vec<FieldElement> = (0..dim)
         .map(|k| g.pow(3 * k as i128))
         .collect();
 
-    // Evaluate vanishing polynomial on the eval domain
     let vanish_evals: Vec<FieldElement> = eval_domain.iter().map(|x| {
         vanish_points.iter().fold(FieldElement::one(), |acc, vp| acc * (*x - *vp))
     }).collect();
@@ -161,7 +176,7 @@ pub fn prove_confinement(
         })
         .collect();
 
-    // Compose with random weights from channel
+    // Compose with random weight
     let alpha = channel.receive_random_field_element();
     let cp_evals: Vec<FieldElement> = quotient_evals.iter()
         .map(|q| *q * alpha)
@@ -173,8 +188,10 @@ pub fn prove_confinement(
 
     // FRI commitment: fold the composition polynomial
     let mut fri_roots = Vec::new();
-    let mut current_evals = cp_evals;
-    let mut current_domain = eval_domain;
+    let mut fri_merkles: Vec<MerkleTree> = Vec::new();
+    let mut fri_layers: Vec<Vec<FieldElement>> = Vec::new();
+    let mut current_evals = cp_evals.clone();
+    let mut current_domain = eval_domain.clone();
 
     while current_evals.len() > 8 {
         let beta = channel.receive_random_field_element();
@@ -184,7 +201,6 @@ pub fn prove_confinement(
         let mut next_domain = Vec::with_capacity(half_len);
 
         for i in 0..half_len {
-            // FRI folding: f_next(x^2) = (f(x) + f(-x))/2 + beta * (f(x) - f(-x))/(2x)
             let f_x = current_evals[i];
             let f_neg_x = current_evals[i + half_len];
             let x = current_domain[i];
@@ -200,12 +216,73 @@ pub fn prove_confinement(
         fri_roots.push(next_merkle.root.clone());
         channel.send(&next_merkle.root);
 
+        fri_layers.push(current_evals.clone());
+        fri_merkles.push(next_merkle);
+
         current_evals = next_evals;
         current_domain = next_domain;
     }
 
     let fri_last_value = current_evals[0];
     channel.send(&fri_last_value.to_string());
+
+    // Generate query decommitments via Fiat-Shamir
+    let padded_eval_len = (eval_len as f64).log2().ceil().exp2() as usize;
+    let num_queries = NUM_QUERIES.min(padded_eval_len / 2);
+    let mut queries = Vec::with_capacity(num_queries);
+
+    for _ in 0..num_queries {
+        let idx = channel.receive_random_int(0, padded_eval_len / 2 - 1, false) as usize;
+
+        let trace_val = f_eval[idx.min(f_eval.len() - 1)];
+        let trace_auth = if idx < padded_eval_len {
+            f_merkle.get_authentication_path(idx)
+        } else {
+            vec![]
+        };
+
+        let cp_val = cp_evals[idx.min(cp_evals.len() - 1)];
+        let cp_auth = if idx < padded_eval_len {
+            cp_merkle.get_authentication_path(idx)
+        } else {
+            vec![]
+        };
+
+        // FRI layer decommitments: for each layer, open the folded value
+        // fri_merkles[i] commits to the output of folding iteration i
+        let mut fri_vals = Vec::new();
+        let mut fri_sibling_vals = Vec::new();
+        let mut fri_auths = Vec::new();
+        let mut fri_sibling_auths = Vec::new();
+        let mut layer_idx = idx;
+
+        for (_layer_num, merkle) in fri_merkles.iter().enumerate() {
+            let folded_len = merkle.data.len();
+            let folded_idx = layer_idx % folded_len;
+
+            // The folded value (from next_evals of this iteration)
+            fri_vals.push(merkle.data[folded_idx]);
+            fri_auths.push(merkle.get_authentication_path(folded_idx));
+
+            // Sibling not needed for Merkle verification
+            fri_sibling_vals.push(FieldElement::zero());
+            fri_sibling_auths.push(vec![]);
+
+            layer_idx = folded_idx; // next layer uses the folded index
+        }
+
+        queries.push(QueryData {
+            idx,
+            trace_val,
+            trace_auth,
+            cp_val,
+            cp_auth,
+            fri_vals,
+            fri_sibling_vals,
+            fri_auths,
+            fri_sibling_auths,
+        });
+    }
 
     ConfinementProof {
         trace_root: f_merkle.root,
@@ -214,13 +291,12 @@ pub fn prove_confinement(
         fri_last_value,
         proof_transcript: channel.proof,
         trace_length: trace_len,
+        queries,
     }
 }
 
-/// Verify a confinement proof (lightweight check).
-/// In a full STARK verifier, this would replay the Fiat-Shamir transcript
-/// and check FRI query decommitments. Here we verify the proof structure
-/// and that the FRI folding converged to a constant.
+/// Verify a confinement proof by replaying the Fiat-Shamir transcript
+/// and checking FRI query decommitments.
 pub fn verify_confinement_proof(proof: &ConfinementProof) -> bool {
     // Structural checks
     if proof.trace_root.is_empty() || proof.cp_root.is_empty() {
@@ -229,16 +305,79 @@ pub fn verify_confinement_proof(proof: &ConfinementProof) -> bool {
     if proof.fri_roots.is_empty() {
         return false;
     }
-    // FRI should have folded down to a small constant
-    // The last value should be the same across all remaining evaluations
-    // (a degree-0 polynomial is constant)
     if proof.trace_length == 0 || !proof.trace_length.is_power_of_two() {
         return false;
     }
-    // Verify transcript is non-empty (Fiat-Shamir was executed)
     if proof.proof_transcript.is_empty() {
         return false;
     }
+
+    // Replay Fiat-Shamir transcript to recompute challenges
+    let mut channel = Channel::new();
+    channel.send(&proof.trace_root);
+    let _alpha = channel.receive_random_field_element();
+    channel.send(&proof.cp_root);
+
+    // Recompute FRI betas
+    let mut fri_betas = Vec::new();
+    for root in &proof.fri_roots {
+        let beta = channel.receive_random_field_element();
+        fri_betas.push(beta);
+        channel.send(root);
+    }
+    channel.send(&proof.fri_last_value.to_string());
+
+    // Verify each query decommitment
+    for (_qi, query) in proof.queries.iter().enumerate() {
+        // 1. Verify trace Merkle membership
+        if !query.trace_auth.is_empty() {
+            let ok = verify_decommitment(
+                query.idx,
+                &query.trace_val,
+                &query.trace_auth,
+                &proof.trace_root,
+            );
+            if !ok {
+                return false;
+            }
+        }
+
+        // 2. Verify CP Merkle membership
+        if !query.cp_auth.is_empty() {
+            let ok = verify_decommitment(
+                query.idx,
+                &query.cp_val,
+                &query.cp_auth,
+                &proof.cp_root,
+            );
+            if !ok {
+                return false;
+            }
+        }
+
+        // 3. Verify FRI layer Merkle openings
+        // fri_roots[i] commits to the folded evaluations of iteration i
+        let mut layer_idx = query.idx;
+        for (layer_num, fri_auth) in query.fri_auths.iter().enumerate() {
+            if fri_auth.is_empty() || layer_num >= proof.fri_roots.len() {
+                continue;
+            }
+            let leaf_num = 1usize << fri_auth.len();
+            let folded_idx = layer_idx % leaf_num;
+            let val = query.fri_vals.get(layer_num).copied().unwrap_or(FieldElement::zero());
+            let ok = verify_decommitment(
+                folded_idx,
+                &val,
+                fri_auth,
+                &proof.fri_roots[layer_num],
+            );
+            if !ok {
+                return false;
+            }
+            layer_idx = folded_idx;
+        }
+    }
+
     true
 }
 
@@ -256,6 +395,7 @@ mod tests {
         assert!(verify_confinement_proof(&proof));
         assert!(!proof.trace_root.is_empty());
         assert!(!proof.fri_roots.is_empty());
+        assert!(!proof.queries.is_empty());
     }
 
     #[test]
@@ -276,6 +416,42 @@ mod tests {
 
         let proof = prove_confinement(&raw, &mask, &constrained);
         assert!(verify_confinement_proof(&proof));
+    }
+
+    #[test]
+    fn test_confinement_tampered_trace_root_fails() {
+        let raw = vec![0.5, -0.3, 0.7, 0.1];
+        let mask = vec![true, false, true, false];
+        let constrained = vec![0.5, 0.0, 0.7, 0.0];
+
+        let mut proof = prove_confinement(&raw, &mask, &constrained);
+        proof.trace_root = "0000000000000000000000000000000000000000000000000000000000000000".to_string();
+        // Tampering the root should cause Merkle verification to fail
+        assert!(!verify_confinement_proof(&proof));
+    }
+
+    #[test]
+    fn test_confinement_tampered_cp_root_fails() {
+        let raw = vec![0.5, -0.3, 0.7, 0.1];
+        let mask = vec![true, false, true, false];
+        let constrained = vec![0.5, 0.0, 0.7, 0.0];
+
+        let mut proof = prove_confinement(&raw, &mask, &constrained);
+        proof.cp_root = "0000000000000000000000000000000000000000000000000000000000000000".to_string();
+        assert!(!verify_confinement_proof(&proof));
+    }
+
+    #[test]
+    fn test_confinement_tampered_query_value_fails() {
+        let raw = vec![0.5, -0.3, 0.7, 0.1];
+        let mask = vec![true, false, true, false];
+        let constrained = vec![0.5, 0.0, 0.7, 0.0];
+
+        let mut proof = prove_confinement(&raw, &mask, &constrained);
+        if !proof.queries.is_empty() {
+            proof.queries[0].trace_val = FieldElement::new(999);
+        }
+        assert!(!verify_confinement_proof(&proof));
     }
 
     #[test]

@@ -37,7 +37,6 @@ impl Channel {
     }
 
     /// Returns a random integer in [min, max] derived from transcript state.
-    /// Uses u128 arithmetic (sufficient since modulus < 2^32).
     pub fn receive_random_int(&mut self, min: usize, max: usize, show_in_proof: bool) -> u128 {
         // Parse first 32 hex chars of state as u128
         let state_bytes = &self.state[..32.min(self.state.len())];
@@ -53,10 +52,18 @@ impl Channel {
         num
     }
 
+    /// Returns a random field element derived from transcript state.
+    /// For Goldilocks (64-bit prime), we use the full SHA256 hash to get
+    /// uniform sampling over the field.
     pub fn receive_random_field_element(&mut self) -> FieldElement {
-        let num = self.receive_random_int(0, (FieldElement::modulus() - 1) as usize, false);
-        self.proof.push(format!("Channel:{}", num));
-        FieldElement::from(num)
+        // Parse first 32 hex chars as u128, then reduce mod p
+        let state_bytes = &self.state[..32.min(self.state.len())];
+        let state_val = u128::from_str_radix(state_bytes, 16).unwrap_or(0);
+        let fe = FieldElement::from(state_val);
+
+        self.state = sha256_hex(&self.state);
+        self.proof.push(format!("Channel:{}", fe.val));
+        fe
     }
 }
 

@@ -352,3 +352,39 @@ pub struct GravFeedbackInput {
     /// Whether the action was accepted
     pub accepted: bool,
 }
+
+// --- STARK Proof Tools ---
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GravProveConfinementInput {
+    /// Raw algebra coefficients before masking
+    pub raw_coefficients: Vec<f64>,
+    /// Generator mask: true = active, false = masked
+    pub mask: Vec<bool>,
+    /// Constrained coefficients after masking
+    pub constrained: Vec<f64>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GravVerifyConfinementInput {
+    /// Serialized confinement proof JSON
+    pub proof_json: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GravProveLineageInput {
+    /// Formatted event strings (session_id:seq:ts:event_type:op:details)
+    pub events: Vec<String>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GravVerifyLineageInput {
+    /// Serialized lineage proof JSON
+    pub proof_json: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct GravAuditProofInput {
+    /// Agent ID to generate audit proof for
+    pub agent_id: String,
+}

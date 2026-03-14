@@ -1,11 +1,12 @@
-//! STARK proof primitives vendored from stark-101-rs.
+//! STARK proof primitives built on Goldilocks field arithmetic.
 //!
-//! Finite field arithmetic over F_p where p = 3 * 2^30 + 1 (Solinas prime),
-//! polynomial operations, Merkle commitments, and Fiat-Shamir channel.
+//! Finite field arithmetic over F_p where p = 2^64 - 2^32 + 1 (Goldilocks prime),
+//! NTT, polynomial operations, Merkle commitments, and Fiat-Shamir channel.
 //! Used for cryptographically sound proofs replacing broken continuous-group crypto.
 
 pub mod field;
 pub mod polynomial;
+pub mod ntt;
 pub mod merkle;
 pub mod channel;
 pub mod confinement;

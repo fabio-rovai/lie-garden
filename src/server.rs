@@ -635,6 +635,79 @@ impl GravRailServer {
         let action = crate::feedback::get_feedback_adjustment(&self.db, &input.tool, &input.rule_id, &input.entity);
         serde_json::json!({"recorded": true, "current_action": format!("{:?}", action)}).to_string()
     }
+
+    // --- STARK Proof Tools ---
+
+    #[tool(name = "grav_prove_confinement", description = "Generate STARK proof that constraint masking was correctly applied. Proves: constrained[i] == raw[i] * mask[i] for all i.")]
+    fn grav_prove_confinement(&self, Parameters(input): Parameters<GravProveConfinementInput>) -> String {
+        if input.raw_coefficients.len() != input.mask.len() || input.mask.len() != input.constrained.len() {
+            return serde_json::json!({"error": "raw_coefficients, mask, and constrained must have same length"}).to_string();
+        }
+        let proof = crate::crypto::stark::confinement::prove_confinement(
+            &input.raw_coefficients,
+            &input.mask,
+            &input.constrained,
+        );
+        let valid = crate::crypto::stark::confinement::verify_confinement_proof(&proof);
+        self.log_event("crypto", "grav_prove_confinement", &format!("dim={} valid={}", input.raw_coefficients.len(), valid));
+        serde_json::json!({
+            "trace_root": proof.trace_root,
+            "cp_root": proof.cp_root,
+            "fri_roots": proof.fri_roots,
+            "fri_last_value": proof.fri_last_value.to_string(),
+            "trace_length": proof.trace_length,
+            "queries_count": proof.queries.len(),
+            "self_verified": valid,
+        }).to_string()
+    }
+
+    #[tool(name = "grav_prove_lineage", description = "Generate STARK proof that a hash chain (event lineage) was computed correctly.")]
+    fn grav_prove_lineage(&self, Parameters(input): Parameters<GravProveLineageInput>) -> String {
+        if input.events.is_empty() {
+            return serde_json::json!({"error": "events must not be empty"}).to_string();
+        }
+        let proof = crate::crypto::stark::lineage::prove_lineage(&input.events);
+        let valid = crate::crypto::stark::lineage::verify_lineage_proof(&proof);
+        self.log_event("crypto", "grav_prove_lineage", &format!("events={} valid={}", proof.chain_length, valid));
+        serde_json::json!({
+            "chain_root": proof.chain_root,
+            "chain_length": proof.chain_length,
+            "query_count": proof.query_indices.len(),
+            "self_verified": valid,
+        }).to_string()
+    }
+
+    #[tool(name = "grav_audit_proof", description = "Generate STARK audit proofs (confinement + lineage) for an agent's entire run.")]
+    fn grav_audit_proof(&self, Parameters(input): Parameters<GravAuditProofInput>) -> String {
+        let agents = self.agents.lock().unwrap();
+        let circuits = self.circuits.lock().unwrap();
+
+        let agent = match agents.get(&input.agent_id) {
+            Some(a) => a,
+            None => return serde_json::json!({"error": "agent not found"}).to_string(),
+        };
+
+        let circuit = match circuits.get(&agent.circuit_id) {
+            Some(c) => c,
+            None => return serde_json::json!({"error": "circuit not found"}).to_string(),
+        };
+
+        // Build confinement proofs from trajectory data
+        // Note: the MCP server's AgentState doesn't store step records,
+        // so we report available data. Full audit_proof() is on AgentRunner.
+        let mask = circuit.active_generators.clone()
+            .unwrap_or_else(|| vec![true; circuit.group.algebra_dim()]);
+
+        self.log_event("crypto", "grav_audit_proof", &format!("agent={} steps={}", input.agent_id, agent.step_count));
+        serde_json::json!({
+            "agent_id": input.agent_id,
+            "step_count": agent.step_count,
+            "circuit_id": agent.circuit_id,
+            "mask": mask,
+            "algebra_dim": circuit.group.algebra_dim(),
+            "note": "For full STARK audit proofs, use AgentRunner.audit_proof() in the Rust API. MCP grav_prove_confinement/grav_prove_lineage tools can verify individual steps.",
+        }).to_string()
+    }
 }
 
 #[tool_handler]
