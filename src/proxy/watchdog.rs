@@ -45,9 +45,9 @@ impl Default for WatchdogConfig {
 /// Dropping all senders (or calling `kill()`) causes the watchdog loop to exit.
 pub struct WatchdogHandle {
     killed: Arc<AtomicBool>,
-    sequence: Arc<AtomicU64>,
+    last_watchdog_seq: Arc<AtomicU64>,
     /// Sender for proxy -> watchdog pings.
-    ping_tx: mpsc::Sender<()>,
+    ping_tx: mpsc::Sender<Heartbeat>,
     /// Receiver for watchdog -> proxy heartbeats.
     heartbeat_rx: mpsc::Receiver<Heartbeat>,
     /// HMAC key shared with the watchdog.
@@ -65,9 +65,11 @@ impl WatchdogHandle {
         self.killed.store(true, Ordering::SeqCst);
     }
 
-    /// Send a ping to the watchdog to prove the proxy is alive.
-    pub async fn send_ping(&self) -> Result<(), mpsc::error::SendError<()>> {
-        self.ping_tx.send(()).await
+    /// Send a signed ping to the watchdog to prove the proxy is alive.
+    pub async fn send_ping(&self) -> Result<(), mpsc::error::SendError<Heartbeat>> {
+        let seq = self.last_watchdog_seq.load(Ordering::SeqCst);
+        let hb = sign_heartbeat(seq, &self.hmac_key);
+        self.ping_tx.send(hb).await
     }
 
     /// Try to receive the next heartbeat (non-blocking).
@@ -80,9 +82,9 @@ impl WatchdogHandle {
         &self.hmac_key
     }
 
-    /// Current sequence number.
-    pub fn sequence(&self) -> u64 {
-        self.sequence.load(Ordering::SeqCst)
+    /// Current watchdog sequence number.
+    pub fn last_watchdog_seq(&self) -> u64 {
+        self.last_watchdog_seq.load(Ordering::SeqCst)
     }
 }
 
@@ -136,14 +138,14 @@ pub fn create_watchdog(
         (0..32).map(|_| rng.r#gen()).collect()
     };
 
-    // proxy -> watchdog pings
-    let (ping_tx, mut ping_rx) = mpsc::channel::<()>(16);
+    // proxy -> watchdog pings (now HMAC-signed Heartbeats)
+    let (ping_tx, mut ping_rx) = mpsc::channel::<Heartbeat>(16);
     // watchdog -> proxy heartbeats
     let (heartbeat_tx, heartbeat_rx) = mpsc::channel::<Heartbeat>(16);
 
     let handle = WatchdogHandle {
         killed: Arc::clone(&killed),
-        sequence: Arc::clone(&sequence),
+        last_watchdog_seq: Arc::clone(&sequence),
         ping_tx,
         heartbeat_rx,
         hmac_key: hmac_key.clone(),
@@ -183,8 +185,11 @@ pub fn create_watchdog(
                 }
                 result = ping_rx.recv() => {
                     match result {
-                        Some(()) => {
-                            last_ping = Instant::now();
+                        Some(hb) => {
+                            // Only reset timer if HMAC signature is valid.
+                            if verify_heartbeat(&hb, &hmac_key) {
+                                last_ping = Instant::now();
+                            }
                         }
                         None => {
                             // Channel closed — proxy dropped its sender.
