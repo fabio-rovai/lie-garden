@@ -443,7 +443,7 @@ impl GravRailServer {
         };
         let list: Vec<_> = circuits.iter()
             .filter(|(_id, c)| {
-                input.group_type.as_ref().map_or(true, |gt| {
+                input.group_type.as_ref().is_none_or(|gt| {
                     format!("{:?}", c.group.group_type).to_uppercase() == gt.to_uppercase()
                 })
             })

@@ -117,7 +117,7 @@ impl LieGroup {
                 // Translation: -R^T * t
                 let t_col = m.column(n - 1);
                 let t = t_col.rows(0, rot_n);
-                let neg_rt_t = -&rot_t * &t;
+                let neg_rt_t = -&rot_t * t;
                 for i in 0..rot_n {
                     inv_m[(i, n - 1)] = neg_rt_t[i];
                 }

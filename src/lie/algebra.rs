@@ -30,9 +30,7 @@ impl LieAlgebra {
                 ei[i] = 1.0;
                 ej[j] = 1.0;
                 let bracket = self.bracket(&ei, &ej);
-                for k in 0..dim {
-                    constants[i][j][k] = bracket[k];
-                }
+                constants[i][j][..dim].copy_from_slice(&bracket[..dim]);
             }
         }
         constants

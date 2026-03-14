@@ -41,8 +41,8 @@ impl Connection {
         let mut a_coeffs = vec![0.0; alg_dim];
         for (mu, &d) in direction.iter().enumerate() {
             if mu < self.gauge_field.len() {
-                for i in 0..alg_dim {
-                    a_coeffs[i] += d * self.gauge_field[mu][i];
+                for (i, coeff) in a_coeffs.iter_mut().enumerate().take(alg_dim) {
+                    *coeff += d * self.gauge_field[mu][i];
                 }
             }
         }
