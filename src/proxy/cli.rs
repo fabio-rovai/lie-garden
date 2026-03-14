@@ -99,6 +99,33 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
         eprintln!("[gravrail-proxy] max state norm: {}", norm);
     }
 
+    // 12. Write PID lock file with exclusive flock
+    let lock_dir = dirs::home_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join(".gravrail");
+    std::fs::create_dir_all(&lock_dir)?;
+    let lock_path = lock_dir.join("proxy.lock");
+
+    use std::io::Write;
+    let lock_file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&lock_path)?;
+
+    // Try exclusive lock (non-blocking)
+    use std::os::unix::io::AsRawFd;
+    let fd = lock_file.as_raw_fd();
+    let ret = unsafe { libc::flock(fd, libc::LOCK_EX | libc::LOCK_NB) };
+    if ret != 0 {
+        anyhow::bail!("Another GravProxy instance is already running (lock file: {})", lock_path.display());
+    }
+    write!(&lock_file, "{}", std::process::id())?;
+    eprintln!("[gravrail-proxy] PID lock: {}", lock_path.display());
+
+    // Keep _lock_file alive so flock persists for the process lifetime
+    let _lock_file = lock_file;
+
     axum::serve(listener, router).await?;
 
     Ok(())
