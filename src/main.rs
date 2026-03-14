@@ -24,6 +24,40 @@ enum Commands {
         #[arg(long, default_value = "~/.gravrail")]
         data_dir: String,
     },
+    /// Start confinement proxy in front of an LLM API
+    Proxy {
+        /// Upstream LLM API URL (e.g. http://localhost:11434)
+        #[arg(long)]
+        upstream: String,
+
+        /// Port for the proxy to listen on
+        #[arg(long, default_value_t = 8340)]
+        port: u16,
+
+        /// Lie group type: SO, SE, or GL
+        #[arg(long, default_value = "SO")]
+        group_type: String,
+
+        /// Group matrix dimension
+        #[arg(long, default_value_t = 3)]
+        group_dim: usize,
+
+        /// Heartbeat interval in milliseconds
+        #[arg(long, default_value_t = 1000)]
+        heartbeat_interval: u64,
+
+        /// Heartbeat timeout in milliseconds
+        #[arg(long, default_value_t = 3000)]
+        heartbeat_timeout: u64,
+
+        /// Maximum state norm (reachability bound)
+        #[arg(long)]
+        max_state_norm: Option<f64>,
+
+        /// Generate STARK proof for every response
+        #[arg(long, default_value_t = false)]
+        prove: bool,
+    },
 }
 
 #[tokio::main]
@@ -44,6 +78,29 @@ async fn main() -> anyhow::Result<()> {
             eprintln!("GravRail MCP server starting ({} tools registered)", server.list_tool_definitions().len());
             let service = server.serve(rmcp::transport::stdio()).await?;
             service.waiting().await?;
+        }
+        Commands::Proxy {
+            upstream,
+            port,
+            group_type,
+            group_dim,
+            heartbeat_interval,
+            heartbeat_timeout,
+            max_state_norm,
+            prove,
+        } => {
+            let config = gravrail::proxy::cli::ProxyConfig {
+                circuit_id: None,
+                group_type,
+                group_dim,
+                upstream_url: upstream,
+                port,
+                heartbeat_interval_ms: heartbeat_interval,
+                heartbeat_timeout_ms: heartbeat_timeout,
+                max_state_norm,
+                prove_every_step: prove,
+            };
+            gravrail::proxy::cli::run_proxy(config).await?;
         }
     }
     Ok(())
