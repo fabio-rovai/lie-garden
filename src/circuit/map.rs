@@ -1,4 +1,64 @@
 use sha2::{Sha256, Digest};
+use std::sync::OnceLock;
+
+/// Dimension of GloVe vectors bundled in the binary.
+const GLOVE_DIM: usize = 50;
+
+/// The GloVe asset is embedded at compile time.
+/// If this file is missing, `cargo build` will fail with a clear error.
+static GLOVE_RAW: &[u8] = include_bytes!("../../assets/glove_10k_50d.bin");
+
+struct GloveTable {
+    /// Words in alphabetical order (matches index in `vecs`).
+    words: Vec<String>,
+    vecs: Vec<[f32; GLOVE_DIM]>,
+}
+
+static GLOVE_TABLE: OnceLock<GloveTable> = OnceLock::new();
+
+fn get_glove() -> &'static GloveTable {
+    GLOVE_TABLE.get_or_init(|| parse_glove_raw(GLOVE_RAW))
+}
+
+fn parse_glove_raw(raw: &[u8]) -> GloveTable {
+    let word_count = u32::from_le_bytes(raw[0..4].try_into().unwrap()) as usize;
+    let dim = u32::from_le_bytes(raw[4..8].try_into().unwrap()) as usize;
+    assert_eq!(dim, GLOVE_DIM, "Asset dim mismatch: expected {GLOVE_DIM}, got {dim}");
+
+    let mut words = Vec::with_capacity(word_count);
+    let mut vecs = Vec::with_capacity(word_count);
+    let mut pos = 8;
+
+    for _ in 0..word_count {
+        let word_len = raw[pos] as usize;
+        pos += 1;
+        let word = std::str::from_utf8(&raw[pos..pos + word_len])
+            .expect("GloVe asset: invalid UTF-8 word")
+            .to_owned();
+        pos += word_len;
+
+        let mut vec = [0f32; GLOVE_DIM];
+        for v in &mut vec {
+            *v = f32::from_le_bytes(raw[pos..pos + 4].try_into().unwrap());
+            pos += 4;
+        }
+
+        words.push(word);
+        vecs.push(vec);
+    }
+
+    GloveTable { words, vecs }
+}
+
+/// Look up a word in the bundled GloVe vocabulary.
+/// Returns the 50-dim vector if found, None if OOV.
+fn lookup_glove(word: &str) -> Option<[f32; GLOVE_DIM]> {
+    let table = get_glove();
+    table.words
+        .binary_search_by(|w| w.as_str().cmp(word))
+        .ok()
+        .map(|idx| table.vecs[idx])
+}
 
 /// Map arbitrary text to Lie algebra coefficients.
 /// This is the chokepoint — every LLM output passes through here.
@@ -185,5 +245,24 @@ mod tests {
         for c in &a {
             assert!(*c >= -1.0 && *c <= 1.0);
         }
+    }
+
+    #[test]
+    fn test_glove_lookup_known_word() {
+        // "the" is the most common English word — must be in top-10k
+        // If GloVe is loaded, lookup should succeed (non-zero vector)
+        let result = lookup_glove("the");
+        assert!(result.is_some(), "Expected 'the' to be in GloVe vocabulary");
+        let vec = result.unwrap();
+        // Vector should not be all-zeros
+        let norm: f32 = vec.iter().map(|v| v * v).sum::<f32>().sqrt();
+        assert!(norm > 0.01, "GloVe vector for 'the' should be non-zero");
+    }
+
+    #[test]
+    fn test_glove_lookup_unknown_word() {
+        // A nonsense word should not be in vocabulary
+        let result = lookup_glove("xyzqqqfrobnicator");
+        assert!(result.is_none(), "Expected nonsense word to be absent from GloVe");
     }
 }
