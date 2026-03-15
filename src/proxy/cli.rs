@@ -53,6 +53,16 @@ pub async fn run_proxy_returning_token(
         other => anyhow::bail!("Unknown group type '{}'. Expected SO, SE, or GL.", other),
     };
 
+    // Load user config (CLI flags take precedence over config file)
+    let file_cfg = crate::config::Config::load_user_default();
+    let pfc = file_cfg.proxy;
+
+    let effective_max_state_norm = config.max_state_norm.or(pfc.max_state_norm);
+    let effective_holonomy_threshold = if config.holonomy_threshold > 0.0 { config.holonomy_threshold } else { pfc.holonomy_threshold };
+    let effective_input_holonomy_threshold = if config.input_holonomy_threshold > 0.0 { config.input_holonomy_threshold } else { pfc.input_holonomy_threshold };
+    let effective_input_norm_threshold = if config.input_norm_threshold > 0.0 { config.input_norm_threshold } else { pfc.input_norm_threshold };
+    let effective_window_size = if config.holonomy_window_size != 8 { config.holonomy_window_size } else { if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 } };
+
     // 2. Create Circuit with LieGroup
     let group = LieGroup::new(group_type, config.group_dim);
     let circuit = Circuit::new(group, None);
@@ -72,7 +82,7 @@ pub async fn run_proxy_returning_token(
     let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
 
     // 5. Create ConfinementPipeline
-    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, config.holonomy_window_size);
+    let pipeline = ConfinementPipeline::new(circuit, effective_max_state_norm, config.prove_every_step, effective_window_size);
 
     // 6. Build Arc<ProxyState>
     let state = Arc::new(ProxyState {
@@ -81,9 +91,9 @@ pub async fn run_proxy_returning_token(
         watchdog: watchdog_handle,
         upstream_url: config.upstream_url.clone(),
         client: reqwest::Client::new(),
-        holonomy_threshold: config.holonomy_threshold,
-        input_holonomy_threshold: config.input_holonomy_threshold,
-        input_norm_threshold: config.input_norm_threshold,
+        holonomy_threshold: effective_holonomy_threshold,
+        input_holonomy_threshold: effective_input_holonomy_threshold,
+        input_norm_threshold: effective_input_norm_threshold,
     });
 
     // 7. Spawn watchdog future on tokio
@@ -138,6 +148,16 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
         other => anyhow::bail!("Unknown group type '{}'. Expected SO, SE, or GL.", other),
     };
 
+    // Load user config (CLI flags take precedence over config file)
+    let file_cfg = crate::config::Config::load_user_default();
+    let pfc = file_cfg.proxy;
+
+    let effective_max_state_norm = config.max_state_norm.or(pfc.max_state_norm);
+    let effective_holonomy_threshold = if config.holonomy_threshold > 0.0 { config.holonomy_threshold } else { pfc.holonomy_threshold };
+    let effective_input_holonomy_threshold = if config.input_holonomy_threshold > 0.0 { config.input_holonomy_threshold } else { pfc.input_holonomy_threshold };
+    let effective_input_norm_threshold = if config.input_norm_threshold > 0.0 { config.input_norm_threshold } else { pfc.input_norm_threshold };
+    let effective_window_size = if config.holonomy_window_size != 8 { config.holonomy_window_size } else { if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 } };
+
     // 2. Create Circuit with LieGroup
     let group = LieGroup::new(group_type, config.group_dim);
     let circuit = Circuit::new(group, None);
@@ -156,7 +176,7 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
 
     // 5. Create ConfinementPipeline
-    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, config.holonomy_window_size);
+    let pipeline = ConfinementPipeline::new(circuit, effective_max_state_norm, config.prove_every_step, effective_window_size);
 
     // 6. Build Arc<ProxyState>
     let state = Arc::new(ProxyState {
@@ -165,9 +185,9 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
         watchdog: watchdog_handle,
         upstream_url: config.upstream_url.clone(),
         client: reqwest::Client::new(),
-        holonomy_threshold: config.holonomy_threshold,
-        input_holonomy_threshold: config.input_holonomy_threshold,
-        input_norm_threshold: config.input_norm_threshold,
+        holonomy_threshold: effective_holonomy_threshold,
+        input_holonomy_threshold: effective_input_holonomy_threshold,
+        input_norm_threshold: effective_input_norm_threshold,
     });
 
     // 7. Spawn watchdog future on tokio
