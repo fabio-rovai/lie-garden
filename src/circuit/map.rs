@@ -29,8 +29,13 @@ fn parse_glove_raw(raw: &[u8]) -> GloveTable {
     let mut vecs = Vec::with_capacity(word_count);
     let mut pos = 8;
 
-    for _ in 0..word_count {
+    for i in 0..word_count {
         let word_len = raw[pos] as usize;
+        assert!(
+            pos + word_len + GLOVE_DIM * 4 <= raw.len(),
+            "GloVe asset: truncated at word {i} (pos={pos}, needed {} more bytes)",
+            1 + word_len + GLOVE_DIM * 4
+        );
         pos += 1;
         let word = std::str::from_utf8(&raw[pos..pos + word_len])
             .expect("GloVe asset: invalid UTF-8 word")
