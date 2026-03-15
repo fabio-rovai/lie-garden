@@ -24,6 +24,32 @@ enum Commands {
         #[arg(long, default_value = "~/.gravrail")]
         data_dir: String,
     },
+    /// Interactive chat session with a confined LLM.
+    Chat {
+        /// Upstream LLM URL (OpenAI-compatible)
+        #[arg(long, default_value = "http://localhost:11434/v1")]
+        upstream: String,
+
+        /// Model name
+        #[arg(long, default_value = "llama3")]
+        model: String,
+
+        /// Lie group type: SO, SE, or GL
+        #[arg(long, default_value = "SO")]
+        group_type: String,
+
+        /// Group dimension
+        #[arg(long, default_value_t = 3usize)]
+        group_dim: usize,
+
+        /// Maximum state norm for reachability (None = unlimited)
+        #[arg(long)]
+        max_state_norm: Option<f64>,
+
+        /// Generate STARK proof for every response
+        #[arg(long, default_value_t = false)]
+        prove: bool,
+    },
     /// Start confinement proxy in front of an LLM API
     Proxy {
         /// Upstream LLM API URL (e.g. http://localhost:11434)
@@ -64,6 +90,17 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        Commands::Chat { upstream, model, group_type, group_dim, max_state_norm, prove } => {
+            gravrail::chat::run_chat(gravrail::chat::ChatConfig {
+                upstream_url: upstream,
+                model,
+                group_type,
+                group_dim,
+                max_state_norm,
+                prove_every_step: prove,
+            })
+            .await?;
+        }
         Commands::Init { data_dir } => {
             let path = PathBuf::from(expand_tilde(&data_dir));
             std::fs::create_dir_all(&path)?;
