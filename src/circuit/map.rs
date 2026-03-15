@@ -203,30 +203,56 @@ fn text_to_embedding(text: &str, dim: usize) -> Vec<f64> {
     embedding
 }
 
-/// Project a high-dimensional embedding to algebra dimension using
-/// a deterministic pseudo-random projection matrix (Johnson-Lindenstrauss).
-///
-/// The matrix entries are derived from SHA256 for reproducibility.
-fn project_embedding(embedding: &[f64], algebra_dim: usize) -> Vec<f64> {
-    let embed_dim = embedding.len();
-    let mut result = vec![0.0f64; algebra_dim];
+/// Cached JL projection matrix. Keyed by (algebra_dim, embed_dim).
+/// Computed once on first call; reused for every subsequent call with the same dims.
+/// Falls back to on-the-fly computation if dims differ from the cached entry (rare).
+static PROJECTION_MATRIX: OnceLock<(usize, usize, Vec<f64>)> = OnceLock::new();
 
+/// Build a flat row-major JL projection matrix of shape [algebra_dim × embed_dim].
+/// Entry [i][j] = data[i * embed_dim + j].
+fn build_projection_matrix(algebra_dim: usize, embed_dim: usize) -> Vec<f64> {
+    let mut data = Vec::with_capacity(algebra_dim * embed_dim);
     for i in 0..algebra_dim {
         for j in 0..embed_dim {
-            // Deterministic matrix entry W[i][j]
             let mut hasher = Sha256::new();
             hasher.update(b"gravrail-projection-matrix");
             hasher.update((i as u64).to_le_bytes());
             hasher.update((j as u64).to_le_bytes());
             let hash = hasher.finalize();
-
             let bytes: [u8; 4] = hash[..4].try_into().unwrap();
-            let w = (u32::from_le_bytes(bytes) as f64 / u32::MAX as f64) * 2.0 - 1.0; // [-1, 1]
-
-            result[i] += w * embedding[j];
+            let w = (u32::from_le_bytes(bytes) as f64 / u32::MAX as f64) * 2.0 - 1.0;
+            data.push(w);
         }
     }
+    data
+}
 
+/// Project a high-dimensional embedding to algebra dimension using
+/// a deterministic pseudo-random projection matrix (Johnson-Lindenstrauss).
+///
+/// The matrix is computed once and cached for the lifetime of the process.
+fn project_embedding(embedding: &[f64], algebra_dim: usize) -> Vec<f64> {
+    let embed_dim = embedding.len();
+
+    // Use cached matrix if dims match; otherwise compute on the fly.
+    let matrix: &[f64];
+    let fallback: Vec<f64>;
+    let cached = PROJECTION_MATRIX.get_or_init(|| {
+        (algebra_dim, embed_dim, build_projection_matrix(algebra_dim, embed_dim))
+    });
+    if cached.0 == algebra_dim && cached.1 == embed_dim {
+        matrix = &cached.2;
+    } else {
+        fallback = build_projection_matrix(algebra_dim, embed_dim);
+        matrix = &fallback;
+    }
+
+    let mut result = vec![0.0f64; algebra_dim];
+    for i in 0..algebra_dim {
+        for j in 0..embed_dim {
+            result[i] += matrix[i * embed_dim + j] * embedding[j];
+        }
+    }
     result
 }
 
