@@ -32,7 +32,7 @@ fn parse_glove_raw(raw: &[u8]) -> GloveTable {
     for i in 0..word_count {
         let word_len = raw[pos] as usize;
         assert!(
-            pos + word_len + GLOVE_DIM * 4 <= raw.len(),
+            pos + 1 + word_len + GLOVE_DIM * 4 <= raw.len(),
             "GloVe asset: truncated at word {i} (pos={pos}, needed {} more bytes)",
             1 + word_len + GLOVE_DIM * 4
         );
