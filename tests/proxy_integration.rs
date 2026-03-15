@@ -48,7 +48,7 @@ async fn setup_proxy(upstream_port: u16) -> (u16, String) {
     let token = auth.token().to_owned();
 
     // Confinement pipeline: generous bound, no per-step proofs
-    let pipeline = ConfinementPipeline::new(circuit, Some(100.0), false);
+    let pipeline = ConfinementPipeline::new(circuit, Some(100.0), false, 8);
 
     // Watchdog with short intervals for tests
     let config = WatchdogConfig {

@@ -64,7 +64,7 @@ pub async fn run_proxy_returning_token(
     let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
 
     // 5. Create ConfinementPipeline
-    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step);
+    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, 8);
 
     // 6. Build Arc<ProxyState>
     let state = Arc::new(ProxyState {
@@ -145,7 +145,7 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
 
     // 5. Create ConfinementPipeline
-    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step);
+    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, 8);
 
     // 6. Build Arc<ProxyState>
     let state = Arc::new(ProxyState {
