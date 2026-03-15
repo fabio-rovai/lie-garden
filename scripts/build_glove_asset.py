@@ -10,19 +10,20 @@ import struct
 import urllib.request
 import zipfile
 import io
-import os
+from pathlib import Path
 
 GLOVE_URL = "https://nlp.stanford.edu/data/glove.6B.zip"
 TOP_N = 10_000
 DIM = 50
-OUT_FILE = "assets/glove_10k_50d.bin"
+ROOT = Path(__file__).parent.parent  # project root
+OUT_FILE = ROOT / "assets" / "glove_10k_50d.bin"
 
 
 def main():
-    os.makedirs("assets", exist_ok=True)
+    OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 
     print("Downloading GloVe 6B (822 MB)...")
-    with urllib.request.urlopen(GLOVE_URL) as response:
+    with urllib.request.urlopen(GLOVE_URL, timeout=300) as response:
         data = response.read()
 
     print("Extracting glove.6B.50d.txt...")
@@ -50,7 +51,7 @@ def main():
             f.write(struct.pack(f"<B{len(wb)}s", len(wb), wb))
             f.write(struct.pack(f"<{DIM}f", *vec))
 
-    size_mb = os.path.getsize(OUT_FILE) / 1024 / 1024
+    size_mb = OUT_FILE.stat().st_size / 1024 / 1024
     print(f"Done. {OUT_FILE}: {size_mb:.1f} MB")
 
 
