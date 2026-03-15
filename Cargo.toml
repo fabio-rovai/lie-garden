@@ -40,6 +40,7 @@ libc = "0.2"
 tempfile = "3"
 proptest = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
+wiremock = "0.6"
 
 [[bench]]
 name = "hot_path"
