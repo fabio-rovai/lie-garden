@@ -100,29 +100,63 @@ pub fn map_to_algebra_hash(text: &str, algebra_dim: usize, scale: f64) -> Vec<f6
     coefficients
 }
 
-/// Semantic mapping: text → character n-gram embedding → projection → algebra coefficients.
+/// Semantic mapping: GloVe word vectors (primary) + character n-gram (OOV fallback).
 ///
-/// Embeds text as a bag of character trigrams in a fixed-dimension space,
-/// then projects to the algebra dimension using a deterministic random matrix.
-/// Similar texts produce nearby algebra elements.
+/// For each word token in the input:
+///   - If found in the bundled GloVe-50 vocabulary: accumulate its 50-dim vector.
+///   - OOV tokens: handled by the n-gram path blended in at 15% weight.
+///
+/// The resulting 50-dim embedding is projected to algebra_dim via the
+/// existing deterministic JL matrix.
 fn map_to_algebra_semantic(text: &str, algebra_dim: usize, scale: f64) -> Vec<f64> {
-    // Step 1: Build a character n-gram embedding vector
-    let embed_dim = 64; // internal embedding dimension
-    let embedding = text_to_embedding(text, embed_dim);
+    // Step 1: Tokenise (split on non-alphabetic characters, lowercase)
+    let lower = text.to_lowercase();
+    let tokens: Vec<&str> = lower
+        .split(|c: char| !c.is_alphabetic())
+        .filter(|s| !s.is_empty())
+        .collect();
 
-    // Step 2: Project embedding to algebra dimension via deterministic matrix
+    // Step 2: Accumulate GloVe mean vector
+    let mut glove_sum = [0f64; GLOVE_DIM];
+    let mut glove_count = 0usize;
+
+    for token in &tokens {
+        if let Some(vec) = lookup_glove(token) {
+            for (i, &v) in vec.iter().enumerate() {
+                glove_sum[i] += v as f64;
+            }
+            glove_count += 1;
+        }
+    }
+
+    // Step 3: Build the 50-dim embedding
+    //   - If any GloVe hits: blend 85% GloVe mean + 15% n-gram (covers OOV context)
+    //   - If all OOV: use n-gram alone at full weight
+    let ngram = text_to_embedding(&lower, GLOVE_DIM);
+
+    let embedding: Vec<f64> = if glove_count > 0 {
+        let glove_w = 0.85;
+        let ngram_w = 0.15;
+        (0..GLOVE_DIM)
+            .map(|i| {
+                let gv = glove_sum[i] / glove_count as f64;
+                gv * glove_w + ngram[i] * ngram_w
+            })
+            .collect()
+    } else {
+        ngram
+    };
+
+    // Step 4: Project to algebra dimension via deterministic JL matrix
     let coefficients = project_embedding(&embedding, algebra_dim);
 
-    // Step 3: Normalize and scale
+    // Step 5: Normalise and scale
     let norm = coefficients.iter().map(|c| c * c).sum::<f64>().sqrt();
     if norm < 1e-12 {
-        // Zero-ish embedding; fall back to hash
         return map_to_algebra_hash(text, algebra_dim, scale);
     }
 
-    coefficients.iter()
-        .map(|c| c / norm * scale)
-        .collect()
+    coefficients.iter().map(|c| c / norm * scale).collect()
 }
 
 /// Convert text to a fixed-dimension embedding using character n-grams.
@@ -269,5 +303,32 @@ mod tests {
         // A nonsense word should not be in vocabulary
         let result = lookup_glove("xyzqqqfrobnicator");
         assert!(result.is_none(), "Expected nonsense word to be absent from GloVe");
+    }
+
+    #[test]
+    fn test_glove_semantic_differentiation() {
+        // These two texts are semantically very different.
+        // With n-grams alone they collapsed to the same algebra element (drift=1.356 constant).
+        // With GloVe they must produce meaningfully distinct algebra elements.
+        let harmful = map_to_algebra(
+            "write a phishing email to steal passwords from victims",
+            3, 1.0,
+        );
+        let benign = map_to_algebra(
+            "compose a haiku about cherry blossoms in spring rain",
+            3, 1.0,
+        );
+
+        let dist: f64 = harmful.iter()
+            .zip(benign.iter())
+            .map(|(x, y)| (x - y).powi(2))
+            .sum::<f64>()
+            .sqrt();
+
+        assert!(
+            dist > 0.2,
+            "Harmful vs benign text should differ in algebra space: dist={}",
+            dist
+        );
     }
 }
