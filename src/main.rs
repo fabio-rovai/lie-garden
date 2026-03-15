@@ -83,6 +83,10 @@ enum Commands {
         /// Generate STARK proof for every response
         #[arg(long, default_value_t = false)]
         prove: bool,
+
+        /// Write {"port":N,"token":"..."} to stdout once ready (for subprocess callers)
+        #[arg(long, default_value_t = false)]
+        json_startup: bool,
     },
 }
 
@@ -125,6 +129,7 @@ async fn main() -> anyhow::Result<()> {
             heartbeat_timeout,
             max_state_norm,
             prove,
+            json_startup,
         } => {
             let config = gravrail::proxy::cli::ProxyConfig {
                 circuit_id: None,
@@ -136,6 +141,7 @@ async fn main() -> anyhow::Result<()> {
                 heartbeat_timeout_ms: heartbeat_timeout,
                 max_state_norm,
                 prove_every_step: prove,
+                json_startup,
             };
             gravrail::proxy::cli::run_proxy(config).await?;
         }

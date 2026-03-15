@@ -17,11 +17,14 @@ pub struct ProxyConfig {
     pub group_type: String,
     pub group_dim: usize,
     pub upstream_url: String,
+    /// Port to bind. Use 0 to let the OS assign a free port.
     pub port: u16,
     pub heartbeat_interval_ms: u64,
     pub heartbeat_timeout_ms: u64,
     pub max_state_norm: Option<f64>,
     pub prove_every_step: bool,
+    /// If true, write {"port":N,"token":"..."} to stdout once the server is ready.
+    pub json_startup: bool,
 }
 
 /// Run the proxy server with the given configuration, calling `token_cb` with
@@ -129,9 +132,10 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let circuit = Circuit::new(group, None);
     let circuit_id = config.circuit_id.unwrap_or_else(|| circuit.id.clone());
 
-    // 3. Create SessionAuth, print token to stderr
+    // 3. Create SessionAuth, save token string before auth is moved into state
     let auth = SessionAuth::new();
-    eprintln!("[gravrail-proxy] session token: {}", auth.token());
+    let token_str = auth.token().to_owned();
+    eprintln!("[gravrail-proxy] session token: {}", token_str);
 
     // 4. Create watchdog with config intervals
     let watchdog_config = WatchdogConfig {
@@ -174,19 +178,29 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     // 9. Build Axum router
     let router = build_router(Arc::clone(&state));
 
-    // 10. Bind TcpListener and serve
+    // 10. Bind TcpListener and serve (port 0 → OS assigns free port)
     let addr = format!("0.0.0.0:{}", config.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
+    let actual_port = listener.local_addr()?.port();
 
     // 11. Print startup info to stderr
     eprintln!("[gravrail-proxy] circuit: {} ({:?}, dim={})", circuit_id, group_type, config.group_dim);
     eprintln!("[gravrail-proxy] upstream: {}", config.upstream_url);
-    eprintln!("[gravrail-proxy] listening on port {}", config.port);
+    eprintln!("[gravrail-proxy] listening on port {}", actual_port);
     if config.prove_every_step {
         eprintln!("[gravrail-proxy] STARK proof enabled for every response");
     }
     if let Some(norm) = config.max_state_norm {
         eprintln!("[gravrail-proxy] max state norm: {}", norm);
+    }
+
+    // If json_startup: write machine-readable startup info to stdout so callers
+    // (e.g. VS Code plugins spawning the proxy as a subprocess) can parse port + token.
+    if config.json_startup {
+        println!(
+            "{{\"port\":{},\"token\":\"{}\"}}",
+            actual_port, token_str
+        );
     }
 
     // 12. Write PID lock file with exclusive flock

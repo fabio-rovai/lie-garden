@@ -43,6 +43,7 @@ pub async fn run_chat(config: ChatConfig) -> Result<()> {
         heartbeat_timeout_ms: 2000,
         max_state_norm: config.max_state_norm,
         prove_every_step: config.prove_every_step,
+        json_startup: false,
     };
 
     let running = Arc::new(AtomicBool::new(true));

@@ -30,6 +30,7 @@ async fn start_proxy_against(mock_url: String) -> (u16, String) {
         heartbeat_timeout_ms: 2000,
         max_state_norm: None,
         prove_every_step: false,
+                json_startup: false,
     };
 
     tokio::spawn(async move {
@@ -183,6 +184,7 @@ async fn test_proxy_blocks_reachability_violation() {
                 heartbeat_timeout_ms: 2000,
                 max_state_norm: Some(0.001), // extremely tight bound
                 prove_every_step: false,
+                json_startup: false,
             },
             move |t| {
                 if let Some(tx) = token_tx.take() {

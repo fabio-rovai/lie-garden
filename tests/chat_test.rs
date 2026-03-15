@@ -33,6 +33,7 @@ async fn start_proxy(mock_url: String) -> (u16, String) {
                 heartbeat_timeout_ms: 2000,
                 max_state_norm: None,
                 prove_every_step: false,
+                json_startup: false,
             },
             move |t| { if let Some(s) = tx.take() { let _ = s.send(t); } },
         )
