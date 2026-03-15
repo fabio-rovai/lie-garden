@@ -87,6 +87,18 @@ enum Commands {
         /// Write {"port":N,"token":"..."} to stdout once ready (for subprocess callers)
         #[arg(long, default_value_t = false)]
         json_startup: bool,
+
+        /// Output-side holonomy threshold (0.0 = disabled)
+        #[arg(long, default_value_t = 0.0)]
+        holonomy_threshold: f64,
+
+        /// Input-side holonomy threshold (0.0 = disabled)
+        #[arg(long, default_value_t = 0.0)]
+        input_holonomy_threshold: f64,
+
+        /// Input-side norm threshold (0.0 = disabled)
+        #[arg(long, default_value_t = 0.0)]
+        input_norm_threshold: f64,
     },
 }
 
@@ -130,6 +142,9 @@ async fn main() -> anyhow::Result<()> {
             max_state_norm,
             prove,
             json_startup,
+            holonomy_threshold,
+            input_holonomy_threshold,
+            input_norm_threshold,
         } => {
             let config = gravrail::proxy::cli::ProxyConfig {
                 circuit_id: None,
@@ -143,6 +158,9 @@ async fn main() -> anyhow::Result<()> {
                 prove_every_step: prove,
                 holonomy_window_size: 8,
                 json_startup,
+                holonomy_threshold,
+                input_holonomy_threshold,
+                input_norm_threshold,
             };
             gravrail::proxy::cli::run_proxy(config).await?;
         }

@@ -27,6 +27,12 @@ pub struct ProxyConfig {
     pub holonomy_window_size: usize,
     /// If true, write {"port":N,"token":"..."} to stdout once the server is ready.
     pub json_startup: bool,
+    /// Output-side holonomy threshold. 0.0 = disabled.
+    pub holonomy_threshold: f64,
+    /// Input-side holonomy threshold. 0.0 = disabled.
+    pub input_holonomy_threshold: f64,
+    /// Input-side norm threshold. 0.0 = disabled.
+    pub input_norm_threshold: f64,
 }
 
 /// Run the proxy server with the given configuration, calling `token_cb` with
@@ -75,6 +81,9 @@ pub async fn run_proxy_returning_token(
         watchdog: watchdog_handle,
         upstream_url: config.upstream_url.clone(),
         client: reqwest::Client::new(),
+        holonomy_threshold: config.holonomy_threshold,
+        input_holonomy_threshold: config.input_holonomy_threshold,
+        input_norm_threshold: config.input_norm_threshold,
     });
 
     // 7. Spawn watchdog future on tokio
@@ -156,6 +165,9 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
         watchdog: watchdog_handle,
         upstream_url: config.upstream_url.clone(),
         client: reqwest::Client::new(),
+        holonomy_threshold: config.holonomy_threshold,
+        input_holonomy_threshold: config.input_holonomy_threshold,
+        input_norm_threshold: config.input_norm_threshold,
     });
 
     // 7. Spawn watchdog future on tokio

@@ -14,7 +14,7 @@ use reqwest::Client;
 use futures_util::StreamExt;
 
 use super::auth::SessionAuth;
-use super::confine::{ConfinementPipeline, ConfinementError};
+use super::confine::{ConfinementPipeline, ConfinementError, InputResult};
 use super::watchdog::WatchdogHandle;
 use super::stream::{extract_text_content, parse_sse_data, format_sse_chunk};
 
@@ -28,6 +28,12 @@ pub struct ProxyState {
     pub watchdog: WatchdogHandle,
     pub upstream_url: String,
     pub client: Client,
+    /// Output-side holonomy threshold. 0.0 = disabled.
+    pub holonomy_threshold: f64,
+    /// Input-side holonomy threshold. 0.0 = disabled.
+    pub input_holonomy_threshold: f64,
+    /// Input-side norm threshold. 0.0 = disabled.
+    pub input_norm_threshold: f64,
 }
 
 /// Build the Axum router with a catch-all handler.
@@ -36,6 +42,37 @@ pub fn build_router(state: Arc<ProxyState>) -> Router {
         .route("/{*path}", any(proxy_handler))
         .with_state(state)
         .layer(axum::extract::DefaultBodyLimit::max(MAX_BODY_SIZE))
+}
+
+/// Parse an OpenAI-compatible JSON body and return the content of the last
+/// message with `"role": "user"`, or `None` if not found.
+pub(crate) fn extract_last_user_message(body: &[u8]) -> Option<String> {
+    let json_val: serde_json::Value = serde_json::from_slice(body).ok()?;
+    let messages = json_val.get("messages")?.as_array()?;
+    messages
+        .iter()
+        .rev()
+        .find(|msg| msg.get("role").and_then(|r| r.as_str()) == Some("user"))
+        .and_then(|msg| msg.get("content"))
+        .and_then(|c| c.as_str())
+        .map(|s| s.to_string())
+}
+
+/// Compute cosine distance (1.0 - cosine_similarity) between two vectors.
+///
+/// Returns 0.0 if either vector is zero-length or the slice lengths differ.
+pub(crate) fn cosine_distance(a: &[f64], b: &[f64]) -> f64 {
+    if a.len() != b.len() || a.is_empty() {
+        return 0.0;
+    }
+    let dot: f64 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
+    let norm_a: f64 = a.iter().map(|x| x * x).sum::<f64>().sqrt();
+    let norm_b: f64 = b.iter().map(|x| x * x).sum::<f64>().sqrt();
+    if norm_a == 0.0 || norm_b == 0.0 {
+        return 0.0;
+    }
+    let similarity = dot / (norm_a * norm_b);
+    1.0 - similarity.clamp(-1.0, 1.0)
 }
 
 /// Main proxy handler for every incoming request.
@@ -87,6 +124,31 @@ async fn proxy_handler(
     // Detect streaming from request body
     let is_streaming = detect_streaming(&body_bytes);
 
+    // 3b. Process user input through the input-side pipeline
+    let input_result: Option<InputResult> =
+        if let Some(user_text) = extract_last_user_message(&body_bytes) {
+            let result = {
+                let mut pipeline = state.pipeline.lock().await;
+                pipeline.process_input(&user_text)
+            };
+
+            // Check input holonomy threshold
+            if state.input_holonomy_threshold > 0.0
+                && result.holonomy > state.input_holonomy_threshold
+            {
+                return block_response("input-holonomy");
+            }
+
+            // Check input norm threshold
+            if state.input_norm_threshold > 0.0 && result.norm > state.input_norm_threshold {
+                return block_response("input-norm");
+            }
+
+            Some(result)
+        } else {
+            None
+        };
+
     // Build upstream URL
     let upstream_url = if let Some(q) = &query {
         format!("{}{}?{}", state.upstream_url, path, q)
@@ -118,9 +180,9 @@ async fn proxy_handler(
 
     // 6/7/8. Route to streaming or non-streaming handler
     if is_streaming {
-        handle_streaming_response(state, upstream_resp).await
+        handle_streaming_response(state, upstream_resp, input_result).await
     } else {
-        handle_non_streaming_response(state, upstream_resp).await
+        handle_non_streaming_response(state, upstream_resp, input_result).await
     }
 }
 
@@ -134,10 +196,27 @@ fn detect_streaming(body: &[u8]) -> bool {
     }
 }
 
+/// Build a 429 blocking response with the given X-GravRail-Block header value.
+fn block_response(reason: &str) -> Response<Body> {
+    let body = serde_json::json!({"error": format!("blocked: {}", reason)}).to_string();
+    Response::builder()
+        .status(StatusCode::TOO_MANY_REQUESTS)
+        .header("content-type", "application/json")
+        .header("x-gravrail-block", reason)
+        .body(Body::from(body))
+        .unwrap_or_else(|_| {
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(r#"{"error":"internal"}"#))
+                .unwrap()
+        })
+}
+
 /// Handle a non-streaming upstream response through the confinement pipeline.
 async fn handle_non_streaming_response(
     state: Arc<ProxyState>,
     resp: reqwest::Response,
+    input_result: Option<InputResult>,
 ) -> Response<Body> {
     let status = resp.status();
     let headers = resp.headers().clone();
@@ -182,6 +261,15 @@ async fn handle_non_streaming_response(
     let mut pipeline = state.pipeline.lock().await;
     match pipeline.confine(&text) {
         Ok(result) => {
+            // Check output holonomy threshold
+            if state.holonomy_threshold > 0.0
+                && result.output_holonomy > state.holonomy_threshold
+            {
+                drop(pipeline);
+                return block_response("output-holonomy");
+            }
+            drop(pipeline);
+
             let state_str = result
                 .state_elements
                 .iter()
@@ -189,6 +277,13 @@ async fn handle_non_streaming_response(
                 .collect::<Vec<_>>()
                 .join(",");
             let proof_hash = result.proof.as_ref().map(|p| p.trace_root.clone());
+
+            // Compute drift between input and output coefficient vectors
+            let drift = if let Some(ref ir) = input_result {
+                cosine_distance(&ir.coeffs, &result.raw_coeffs)
+            } else {
+                0.0
+            };
 
             let axum_status =
                 StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::OK);
@@ -205,6 +300,14 @@ async fn handle_non_streaming_response(
             if let Some(hash) = &proof_hash {
                 builder = builder.header("x-gravrail-proof", hash.as_str());
             }
+
+            // Add holonomy / norm / drift headers
+            builder = builder.header("x-gravrail-holonomy", result.output_holonomy.to_string());
+            if let Some(ref ir) = input_result {
+                builder = builder.header("x-gravrail-input-norm", ir.norm.to_string());
+                builder = builder.header("x-gravrail-input-holonomy", ir.holonomy.to_string());
+            }
+            builder = builder.header("x-gravrail-drift", drift.to_string());
 
             builder
                 .body(Body::from(body_bytes.to_vec()))
@@ -232,6 +335,7 @@ async fn handle_non_streaming_response(
 async fn handle_streaming_response(
     state: Arc<ProxyState>,
     resp: reqwest::Response,
+    _input_result: Option<InputResult>,
 ) -> Response<Body> {
     let mut upstream_stream = resp.bytes_stream();
 
@@ -389,4 +493,129 @@ fn json_error_response(status: StatusCode, message: &str) -> Response<Body> {
                 .body(Body::from(r#"{"error":"internal"}"#))
                 .unwrap()
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── extract_last_user_message ────────────────────────────────────────────
+
+    #[test]
+    fn test_extract_last_user_message_basic() {
+        let body = serde_json::json!({
+            "messages": [
+                {"role": "system", "content": "You are helpful."},
+                {"role": "user", "content": "Hello!"}
+            ]
+        })
+        .to_string();
+        let result = extract_last_user_message(body.as_bytes());
+        assert_eq!(result, Some("Hello!".to_string()));
+    }
+
+    #[test]
+    fn test_extract_last_user_message_picks_last() {
+        let body = serde_json::json!({
+            "messages": [
+                {"role": "user", "content": "First message"},
+                {"role": "assistant", "content": "Response"},
+                {"role": "user", "content": "Second message"}
+            ]
+        })
+        .to_string();
+        let result = extract_last_user_message(body.as_bytes());
+        assert_eq!(result, Some("Second message".to_string()));
+    }
+
+    #[test]
+    fn test_extract_last_user_message_no_user_role() {
+        let body = serde_json::json!({
+            "messages": [
+                {"role": "system", "content": "System only"},
+                {"role": "assistant", "content": "Assistant only"}
+            ]
+        })
+        .to_string();
+        let result = extract_last_user_message(body.as_bytes());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_extract_last_user_message_no_messages_field() {
+        let body = serde_json::json!({"model": "gpt-4", "prompt": "hello"}).to_string();
+        let result = extract_last_user_message(body.as_bytes());
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_extract_last_user_message_invalid_json() {
+        let result = extract_last_user_message(b"not json at all");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_extract_last_user_message_empty_body() {
+        let result = extract_last_user_message(b"");
+        assert!(result.is_none());
+    }
+
+    // ── cosine_distance ──────────────────────────────────────────────────────
+
+    #[test]
+    fn test_cosine_distance_identical_vectors() {
+        let v = vec![1.0, 2.0, 3.0];
+        // Identical vectors → cosine similarity = 1 → distance = 0
+        let d = cosine_distance(&v, &v);
+        assert!((d - 0.0).abs() < 1e-12, "identical vectors should give distance 0, got {}", d);
+    }
+
+    #[test]
+    fn test_cosine_distance_opposite_vectors() {
+        let a = vec![1.0, 0.0];
+        let b = vec![-1.0, 0.0];
+        // Opposite vectors → similarity = -1 → distance = 2
+        let d = cosine_distance(&a, &b);
+        assert!((d - 2.0).abs() < 1e-12, "opposite vectors should give distance 2, got {}", d);
+    }
+
+    #[test]
+    fn test_cosine_distance_orthogonal_vectors() {
+        let a = vec![1.0, 0.0];
+        let b = vec![0.0, 1.0];
+        // Orthogonal → similarity = 0 → distance = 1
+        let d = cosine_distance(&a, &b);
+        assert!((d - 1.0).abs() < 1e-12, "orthogonal vectors should give distance 1, got {}", d);
+    }
+
+    #[test]
+    fn test_cosine_distance_zero_vector() {
+        let a = vec![0.0, 0.0, 0.0];
+        let b = vec![1.0, 2.0, 3.0];
+        let d = cosine_distance(&a, &b);
+        assert_eq!(d, 0.0, "zero vector should return 0");
+    }
+
+    #[test]
+    fn test_cosine_distance_different_lengths() {
+        let a = vec![1.0, 2.0];
+        let b = vec![1.0, 2.0, 3.0];
+        let d = cosine_distance(&a, &b);
+        assert_eq!(d, 0.0, "mismatched lengths should return 0");
+    }
+
+    #[test]
+    fn test_cosine_distance_empty_slices() {
+        let d = cosine_distance(&[], &[]);
+        assert_eq!(d, 0.0, "empty slices should return 0");
+    }
+
+    #[test]
+    fn test_cosine_distance_symmetric() {
+        let a = vec![1.0, 2.0, 3.0];
+        let b = vec![4.0, 5.0, 6.0];
+        let d_ab = cosine_distance(&a, &b);
+        let d_ba = cosine_distance(&b, &a);
+        assert!((d_ab - d_ba).abs() < 1e-12, "cosine distance should be symmetric");
+    }
 }
