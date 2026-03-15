@@ -118,11 +118,12 @@ pub async fn run_chat(config: ChatConfig) -> Result<()> {
         // Add user message to history
         messages.push(json!({"role": "user", "content": line}));
 
-        // Send streaming request to proxy
+        // Send non-streaming request so confinement headers are in HTTP response headers.
+        // (Streaming puts metadata in SSE comment lines; non-streaming uses x-gravrail-* headers.)
         let body = json!({
             "model": config.model,
             "messages": messages,
-            "stream": true,
+            "stream": false,
         });
 
         let resp = match client
