@@ -24,6 +24,96 @@ pub struct ProxyConfig {
     pub prove_every_step: bool,
 }
 
+/// Run the proxy server with the given configuration, calling `token_cb` with
+/// the session token before the server starts accepting connections.
+///
+/// This variant is primarily intended for integration tests that need to
+/// capture the session token programmatically rather than reading it from
+/// stderr.
+pub async fn run_proxy_returning_token(
+    config: ProxyConfig,
+    token_cb: impl FnOnce(String) + Send + 'static,
+) -> anyhow::Result<()> {
+    // 1. Parse group_type string to GroupType enum
+    let group_type = match config.group_type.to_uppercase().as_str() {
+        "SO" => GroupType::SO,
+        "SE" => GroupType::SE,
+        "GL" => GroupType::GL,
+        other => anyhow::bail!("Unknown group type '{}'. Expected SO, SE, or GL.", other),
+    };
+
+    // 2. Create Circuit with LieGroup
+    let group = LieGroup::new(group_type, config.group_dim);
+    let circuit = Circuit::new(group, None);
+    let circuit_id = config.circuit_id.unwrap_or_else(|| circuit.id.clone());
+
+    // 3. Create SessionAuth, fire callback with token, then print to stderr
+    let auth = SessionAuth::new();
+    let token = auth.token().to_owned();
+    token_cb(token.clone());
+    eprintln!("[gravrail-proxy] session token: {}", token);
+
+    // 4. Create watchdog with config intervals
+    let watchdog_config = WatchdogConfig {
+        interval: Duration::from_millis(config.heartbeat_interval_ms),
+        timeout: Duration::from_millis(config.heartbeat_timeout_ms),
+    };
+    let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
+
+    // 5. Create ConfinementPipeline
+    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step);
+
+    // 6. Build Arc<ProxyState>
+    let state = Arc::new(ProxyState {
+        auth: Mutex::new(auth),
+        pipeline: Mutex::new(pipeline),
+        watchdog: watchdog_handle,
+        upstream_url: config.upstream_url.clone(),
+        client: reqwest::Client::new(),
+    });
+
+    // 7. Spawn watchdog future on tokio
+    tokio::spawn(watchdog_loop);
+
+    // 8. Spawn proxy heartbeat sender loop
+    let heartbeat_state = Arc::clone(&state);
+    let heartbeat_interval = Duration::from_millis(config.heartbeat_interval_ms);
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(heartbeat_interval);
+        loop {
+            interval.tick().await;
+            if !heartbeat_state.watchdog.is_alive() {
+                break;
+            }
+            if heartbeat_state.watchdog.send_ping().await.is_err() {
+                break;
+            }
+        }
+    });
+
+    // 9. Build Axum router
+    let router = build_router(Arc::clone(&state));
+
+    // 10. Bind TcpListener and serve
+    let addr = format!("0.0.0.0:{}", config.port);
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+
+    // 11. Print startup info to stderr
+    eprintln!("[gravrail-proxy] circuit: {} ({:?}, dim={})", circuit_id, group_type, config.group_dim);
+    eprintln!("[gravrail-proxy] upstream: {}", config.upstream_url);
+    eprintln!("[gravrail-proxy] listening on port {}", config.port);
+    if config.prove_every_step {
+        eprintln!("[gravrail-proxy] STARK proof enabled for every response");
+    }
+    if let Some(norm) = config.max_state_norm {
+        eprintln!("[gravrail-proxy] max state norm: {}", norm);
+    }
+
+    axum::serve(listener, router).await?;
+
+    Ok(())
+}
+
 /// Run the proxy server with the given configuration.
 pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     // 1. Parse group_type string to GroupType enum
