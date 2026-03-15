@@ -141,6 +141,7 @@ async fn main() -> anyhow::Result<()> {
                 heartbeat_timeout_ms: heartbeat_timeout,
                 max_state_norm,
                 prove_every_step: prove,
+                holonomy_window_size: 8,
                 json_startup,
             };
             gravrail::proxy::cli::run_proxy(config).await?;

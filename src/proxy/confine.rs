@@ -35,6 +35,7 @@ impl fmt::Debug for ConfinementResult {
             .field("seq", &self.seq)
             .field("proof", &self.proof.as_ref().map(|_| "..."))
             .field("state_elements", &self.state_elements)
+            .field("raw_coeffs", &self.raw_coeffs)
             .field("output_holonomy", &self.output_holonomy)
             .finish()
     }

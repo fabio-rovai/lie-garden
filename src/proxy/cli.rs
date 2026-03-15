@@ -23,6 +23,8 @@ pub struct ProxyConfig {
     pub heartbeat_timeout_ms: u64,
     pub max_state_norm: Option<f64>,
     pub prove_every_step: bool,
+    /// Holonomy sliding window size.
+    pub holonomy_window_size: usize,
     /// If true, write {"port":N,"token":"..."} to stdout once the server is ready.
     pub json_startup: bool,
 }
@@ -64,7 +66,7 @@ pub async fn run_proxy_returning_token(
     let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
 
     // 5. Create ConfinementPipeline
-    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, 8);
+    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, config.holonomy_window_size);
 
     // 6. Build Arc<ProxyState>
     let state = Arc::new(ProxyState {
@@ -145,7 +147,7 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let (watchdog_handle, watchdog_loop) = create_watchdog(watchdog_config);
 
     // 5. Create ConfinementPipeline
-    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, 8);
+    let pipeline = ConfinementPipeline::new(circuit, config.max_state_norm, config.prove_every_step, config.holonomy_window_size);
 
     // 6. Build Arc<ProxyState>
     let state = Arc::new(ProxyState {
