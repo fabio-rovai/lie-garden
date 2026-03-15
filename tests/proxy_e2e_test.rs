@@ -31,7 +31,10 @@ async fn start_proxy_against(mock_url: String) -> (u16, String) {
         max_state_norm: None,
         prove_every_step: false,
         holonomy_window_size: 8,
-                json_startup: false,
+        json_startup: false,
+        holonomy_threshold: 0.0,
+        input_holonomy_threshold: 0.0,
+        input_norm_threshold: 0.0,
     };
 
     tokio::spawn(async move {
@@ -187,6 +190,9 @@ async fn test_proxy_blocks_reachability_violation() {
                 prove_every_step: false,
                 holonomy_window_size: 8,
                 json_startup: false,
+                holonomy_threshold: 0.0,
+                input_holonomy_threshold: 0.0,
+                input_norm_threshold: 0.0,
             },
             move |t| {
                 if let Some(tx) = token_tx.take() {

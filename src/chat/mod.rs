@@ -45,6 +45,9 @@ pub async fn run_chat(config: ChatConfig) -> Result<()> {
         prove_every_step: config.prove_every_step,
         holonomy_window_size: 8,
         json_startup: false,
+        holonomy_threshold: 0.0,
+        input_holonomy_threshold: 0.0,
+        input_norm_threshold: 0.0,
     };
 
     let running = Arc::new(AtomicBool::new(true));

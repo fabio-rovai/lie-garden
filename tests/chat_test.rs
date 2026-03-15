@@ -35,6 +35,9 @@ async fn start_proxy(mock_url: String) -> (u16, String) {
                 prove_every_step: false,
                 holonomy_window_size: 8,
                 json_startup: false,
+                holonomy_threshold: 0.0,
+                input_holonomy_threshold: 0.0,
+                input_norm_threshold: 0.0,
             },
             move |t| { if let Some(s) = tx.take() { let _ = s.send(t); } },
         )

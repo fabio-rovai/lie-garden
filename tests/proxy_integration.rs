@@ -84,6 +84,9 @@ async fn setup_proxy(upstream_port: u16) -> (u16, String) {
         watchdog: watchdog_handle,
         upstream_url: format!("http://127.0.0.1:{}", upstream_port),
         client: reqwest::Client::new(),
+        holonomy_threshold: 0.0,
+        input_holonomy_threshold: 0.0,
+        input_norm_threshold: 0.0,
     });
 
     let router = build_router(state);
