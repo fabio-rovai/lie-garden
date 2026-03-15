@@ -68,15 +68,14 @@ fn lookup_glove(word: &str) -> Option<[f32; GLOVE_DIM]> {
 /// Map arbitrary text to Lie algebra coefficients.
 /// This is the chokepoint — every LLM output passes through here.
 ///
-/// Two strategies:
+/// Strategy: GloVe-50 word vectors (primary) → n-gram fallback (OOV) → JL projection → coefficients.
 ///
-/// 1. **Semantic (default)**: character n-gram embedding → deterministic projection → coefficients.
-///    Semantically similar text maps to nearby algebra elements, preserving structure.
+/// - Known words: looked up in the bundled 10k-word GloVe-50 vocabulary (no download, compile-time embed).
+/// - OOV words: handled by character n-gram bag-of-ngrams, blended at 15% weight.
+/// - Zero embedding: falls back to HMAC-style hash derivation.
 ///
-/// 2. **Hash fallback**: HMAC-style key derivation. Each coefficient gets its own
-///    independent hash: H(text || domain || index). Fully deterministic, no semantic structure.
-///
-/// For production with real embeddings: text → sentence embedding → learned projection W → coefficients.
+/// Semantically similar text maps to nearby algebra elements; semantically distinct text
+/// (e.g. phishing instruction vs haiku) maps to distant elements, enabling meaningful confinement.
 pub fn map_to_algebra(text: &str, algebra_dim: usize, scale: f64) -> Vec<f64> {
     map_to_algebra_semantic(text, algebra_dim, scale)
 }

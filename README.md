@@ -120,6 +120,12 @@ Every response — whether a calculus answer, a phishing refusal, a haiku, or st
 
 **Implication:** The mathematical machinery is sound, but the signal (n-gram embedding) is too coarse for confinement to be semantically meaningful. A sentence embedding model (even `all-MiniLM-L6`, 22 MB) would produce genuinely distinct trajectories for a phishing refusal vs. a creative story.
 
+**Update (GloVe-50 bundled embeddings):** The constant-drift finding motivated replacing
+character n-grams with a bundled GloVe-50 vocabulary (top-10k words, ~2 MB, embedded at
+compile time via `include_bytes!`). The semantic mapping now produces distinct algebra
+trajectories for topically different inputs. Re-run with `gravrail proxy` after rebuilding
+to verify varied drift values.
+
 ### Finding 3 — Subprocess integration is production-ready
 
 ```bash
