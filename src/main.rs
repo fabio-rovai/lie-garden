@@ -99,6 +99,10 @@ enum Commands {
         /// Input-side norm threshold (0.0 = disabled)
         #[arg(long, default_value_t = 0.0)]
         input_norm_threshold: f64,
+
+        /// Holonomy sliding window size
+        #[arg(long, default_value_t = 8usize)]
+        holonomy_window: usize,
     },
 }
 
@@ -145,6 +149,7 @@ async fn main() -> anyhow::Result<()> {
             holonomy_threshold,
             input_holonomy_threshold,
             input_norm_threshold,
+            holonomy_window,
         } => {
             let config = gravrail::proxy::cli::ProxyConfig {
                 circuit_id: None,
@@ -156,7 +161,7 @@ async fn main() -> anyhow::Result<()> {
                 heartbeat_timeout_ms: heartbeat_timeout,
                 max_state_norm,
                 prove_every_step: prove,
-                holonomy_window_size: 8,
+                holonomy_window_size: holonomy_window,
                 json_startup,
                 holonomy_threshold,
                 input_holonomy_threshold,

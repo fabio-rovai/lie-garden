@@ -68,7 +68,7 @@ pub(crate) fn cosine_distance(a: &[f64], b: &[f64]) -> f64 {
     let dot: f64 = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum();
     let norm_a: f64 = a.iter().map(|x| x * x).sum::<f64>().sqrt();
     let norm_b: f64 = b.iter().map(|x| x * x).sum::<f64>().sqrt();
-    if norm_a == 0.0 || norm_b == 0.0 {
+    if norm_a < 1e-12 || norm_b < 1e-12 {
         return 0.0;
     }
     let similarity = dot / (norm_a * norm_b);
@@ -261,6 +261,10 @@ async fn handle_non_streaming_response(
     let mut pipeline = state.pipeline.lock().await;
     match pipeline.confine(&text) {
         Ok(result) => {
+            // NOTE: confine() has already advanced the group state and seq when this
+            // check fires. The state mutation is intentional — the block is an
+            // observation-level gate, not a rollback. Task 6 (trajectory persistence)
+            // should record blocked steps with a "blocked" flag so replay is consistent.
             // Check output holonomy threshold
             if state.holonomy_threshold > 0.0
                 && result.output_holonomy > state.holonomy_threshold
@@ -335,6 +339,10 @@ async fn handle_non_streaming_response(
 async fn handle_streaming_response(
     state: Arc<ProxyState>,
     resp: reqwest::Response,
+    // NOTE: _input_result is intentionally unused. process_input() was already
+    // called and the input_window was updated, but SSE responses do not emit
+    // per-chunk input holonomy headers. This means the input window advances
+    // even for streaming requests. Future work: add holonomy to SSE metadata.
     _input_result: Option<InputResult>,
 ) -> Response<Body> {
     let mut upstream_stream = resp.bytes_stream();
