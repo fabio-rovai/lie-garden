@@ -305,7 +305,7 @@ async fn handle_non_streaming_response(
                 let o_norm: f64 = result.state_elements.iter().map(|x| x * x).sum::<f64>().sqrt();
                 let o_hol = Some(result.output_holonomy);
                 let raw = result.raw_coeffs.clone();
-                tokio::spawn(async move {
+                tokio::task::spawn_blocking(move || {
                     if let Err(e) = db.insert_trajectory_step(
                         &session_id, &circuit_id, step,
                         i_norm, i_hol, o_norm, o_hol, drift_val,

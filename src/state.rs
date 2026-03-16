@@ -185,7 +185,7 @@ impl StateDb {
     pub fn list_trajectory_sessions(&self) -> anyhow::Result<Vec<String>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT session_id FROM trajectory_steps GROUP BY session_id ORDER BY MIN(ts) DESC",
+            "SELECT session_id FROM trajectory_steps GROUP BY session_id ORDER BY MAX(ts) DESC",
         )?;
         let rows = stmt.query_map([], |row| row.get(0))?;
         let mut result = Vec::new();

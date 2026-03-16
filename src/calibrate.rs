@@ -98,7 +98,7 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
         .context("failed to spawn gravrail proxy subprocess")?;
 
     // 3. Read startup JSON from proxy stdout
-    let stdout = child.stdout.take().unwrap();
+    let stdout = child.stdout.take().context("proxy stdout not piped")?;
     let mut reader = tokio::io::BufReader::new(stdout);
     let mut line = String::new();
     tokio::time::timeout(Duration::from_secs(10), reader.read_line(&mut line))
@@ -122,7 +122,6 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
 
     let mut input_norms = Vec::with_capacity(n);
     let mut input_holonomies = Vec::with_capacity(n);
-    let mut output_norms = Vec::with_capacity(n);
     let mut output_holonomies = Vec::with_capacity(n);
 
     print!("Sending {} prompts", n);
@@ -159,17 +158,6 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
         {
             input_holonomies.push(v);
         }
-        if let Some(v) = resp.headers().get("x-gravrail-state")
-            .and_then(|h| h.to_str().ok())
-        {
-            // State is "[e1,e2,...,e9]" — compute Frobenius norm of state elements
-            let elems: Vec<f64> = v.trim_matches(|c| c == '[' || c == ']')
-                .split(',')
-                .filter_map(|s| s.parse().ok())
-                .collect();
-            let norm: f64 = elems.iter().map(|x| x * x).sum::<f64>().sqrt();
-            output_norms.push(norm);
-        }
         if let Some(v) = resp.headers().get("x-gravrail-holonomy")
             .and_then(|h| h.to_str().ok())
             .and_then(|s| s.parse::<f64>().ok())
@@ -195,8 +183,9 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
     let holonomy_threshold = mean_plus_3sigma(&output_holonomies);
     let input_holonomy_threshold = mean_plus_3sigma(&input_holonomies);
     let input_norm_threshold = mean_plus_3sigma(&input_norms);
-    let max_state_norm_f = mean_plus_3sigma(&output_norms);
-    let max_state_norm = if max_state_norm_f > 0.0 { Some(max_state_norm_f) } else { None };
+    // max_state_norm is NOT calibrated here: for SO(n) the Frobenius norm of the
+    // state matrix is always sqrt(n) (constant), making mean+3σ a meaningless bound.
+    // It must be set intentionally via --max-state-norm or left disabled (None).
 
     // Check we have enough data
     let min_samples = n / 4;
@@ -214,13 +203,10 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
     println!("  holonomy_threshold:        {:.4}", holonomy_threshold);
     println!("  input_holonomy_threshold:  {:.4}", input_holonomy_threshold);
     println!("  input_norm_threshold:      {:.4}", input_norm_threshold);
-    if let Some(norm) = max_state_norm {
-        println!("  max_state_norm:            {:.4}", norm);
-    }
 
     // 8. Write to config file
     let proxy_config = crate::config::ProxyFileConfig {
-        max_state_norm,
+        max_state_norm: None,
         holonomy_threshold,
         input_holonomy_threshold,
         input_norm_threshold,
