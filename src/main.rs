@@ -161,7 +161,7 @@ async fn main() -> anyhow::Result<()> {
                 heartbeat_timeout_ms: heartbeat_timeout,
                 max_state_norm,
                 prove_every_step: prove,
-                holonomy_window_size: holonomy_window,
+                holonomy_window_size: Some(holonomy_window),
                 json_startup,
                 holonomy_threshold,
                 input_holonomy_threshold,

@@ -24,7 +24,7 @@ pub struct ProxyConfig {
     pub max_state_norm: Option<f64>,
     pub prove_every_step: bool,
     /// Holonomy sliding window size.
-    pub holonomy_window_size: usize,
+    pub holonomy_window_size: Option<usize>,
     /// If true, write {"port":N,"token":"..."} to stdout once the server is ready.
     pub json_startup: bool,
     /// Output-side holonomy threshold. 0.0 = disabled.
@@ -61,7 +61,8 @@ pub async fn run_proxy_returning_token(
     let effective_holonomy_threshold = if config.holonomy_threshold > 0.0 { config.holonomy_threshold } else { pfc.holonomy_threshold };
     let effective_input_holonomy_threshold = if config.input_holonomy_threshold > 0.0 { config.input_holonomy_threshold } else { pfc.input_holonomy_threshold };
     let effective_input_norm_threshold = if config.input_norm_threshold > 0.0 { config.input_norm_threshold } else { pfc.input_norm_threshold };
-    let effective_window_size = if config.holonomy_window_size != 8 { config.holonomy_window_size } else { if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 } };
+    let effective_window_size = config.holonomy_window_size
+        .unwrap_or_else(|| if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 });
 
     // 2. Create Circuit with LieGroup
     let group = LieGroup::new(group_type, config.group_dim);
@@ -129,7 +130,7 @@ pub async fn run_proxy_returning_token(
     if config.prove_every_step {
         eprintln!("[gravrail-proxy] STARK proof enabled for every response");
     }
-    if let Some(norm) = config.max_state_norm {
+    if let Some(norm) = effective_max_state_norm {
         eprintln!("[gravrail-proxy] max state norm: {}", norm);
     }
 
@@ -156,7 +157,8 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let effective_holonomy_threshold = if config.holonomy_threshold > 0.0 { config.holonomy_threshold } else { pfc.holonomy_threshold };
     let effective_input_holonomy_threshold = if config.input_holonomy_threshold > 0.0 { config.input_holonomy_threshold } else { pfc.input_holonomy_threshold };
     let effective_input_norm_threshold = if config.input_norm_threshold > 0.0 { config.input_norm_threshold } else { pfc.input_norm_threshold };
-    let effective_window_size = if config.holonomy_window_size != 8 { config.holonomy_window_size } else { if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 } };
+    let effective_window_size = config.holonomy_window_size
+        .unwrap_or_else(|| if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 });
 
     // 2. Create Circuit with LieGroup
     let group = LieGroup::new(group_type, config.group_dim);
@@ -224,7 +226,7 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     if config.prove_every_step {
         eprintln!("[gravrail-proxy] STARK proof enabled for every response");
     }
-    if let Some(norm) = config.max_state_norm {
+    if let Some(norm) = effective_max_state_norm {
         eprintln!("[gravrail-proxy] max state norm: {}", norm);
     }
 

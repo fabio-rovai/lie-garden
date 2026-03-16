@@ -30,7 +30,7 @@ async fn start_proxy_against(mock_url: String) -> (u16, String) {
         heartbeat_timeout_ms: 2000,
         max_state_norm: None,
         prove_every_step: false,
-        holonomy_window_size: 8,
+        holonomy_window_size: Some(8),
         json_startup: false,
         holonomy_threshold: 0.0,
         input_holonomy_threshold: 0.0,
@@ -188,7 +188,7 @@ async fn test_proxy_blocks_reachability_violation() {
                 heartbeat_timeout_ms: 2000,
                 max_state_norm: Some(0.001), // extremely tight bound
                 prove_every_step: false,
-                holonomy_window_size: 8,
+                holonomy_window_size: Some(8),
                 json_startup: false,
                 holonomy_threshold: 0.0,
                 input_holonomy_threshold: 0.0,

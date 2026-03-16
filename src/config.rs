@@ -67,7 +67,8 @@ impl Config {
         }
 
         // Serialise proxy config to TOML key=value pairs
-        let proxy_toml = build_proxy_toml(proxy);
+        let proxy_toml = toml::to_string(proxy)
+            .context("failed to serialise proxy config")?;
         stripped.push_str("[proxy]\n");
         stripped.push_str(&proxy_toml);
 
@@ -105,20 +106,6 @@ fn remove_toml_section(content: &str, section: &str) -> String {
     out
 }
 
-/// Build TOML key=value lines for `ProxyFileConfig` without the section header.
-fn build_proxy_toml(p: &ProxyFileConfig) -> String {
-    let mut lines = Vec::new();
-    if let Some(v) = p.max_state_norm {
-        lines.push(format!("max_state_norm = {}", v));
-    }
-    lines.push(format!("holonomy_threshold = {}", p.holonomy_threshold));
-    lines.push(format!("input_holonomy_threshold = {}", p.input_holonomy_threshold));
-    lines.push(format!("input_norm_threshold = {}", p.input_norm_threshold));
-    lines.push(format!("holonomy_window = {}", p.holonomy_window));
-    let mut out = lines.join("\n");
-    out.push('\n');
-    out
-}
 
 #[derive(Debug, Deserialize, serde::Serialize)]
 #[serde(default)]

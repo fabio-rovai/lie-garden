@@ -43,7 +43,7 @@ pub async fn run_chat(config: ChatConfig) -> Result<()> {
         heartbeat_timeout_ms: 2000,
         max_state_norm: config.max_state_norm,
         prove_every_step: config.prove_every_step,
-        holonomy_window_size: 8,
+        holonomy_window_size: None,
         json_startup: false,
         holonomy_threshold: 0.0,
         input_holonomy_threshold: 0.0,
