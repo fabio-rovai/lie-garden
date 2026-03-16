@@ -104,6 +104,8 @@ enum Commands {
         #[arg(long, default_value_t = 8usize)]
         holonomy_window: usize,
     },
+    /// Run jailbreak detection benchmark
+    Benchmark,
     /// Calibrate holonomy/norm thresholds from benign traffic
     Calibrate {
         /// Number of calibration prompts (max 50)
@@ -174,6 +176,9 @@ async fn main() -> anyhow::Result<()> {
                 input_norm_threshold,
             };
             gravrail::proxy::cli::run_proxy(config).await?;
+        }
+        Commands::Benchmark => {
+            gravrail::benchmark::run_benchmark().await?;
         }
         Commands::Calibrate { n_prompts } => {
             gravrail::calibrate::run_calibrate(gravrail::calibrate::CalibrateConfig {
