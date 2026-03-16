@@ -88,17 +88,17 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         json_startup: bool,
 
-        /// Output-side holonomy threshold (0.0 = disabled)
-        #[arg(long, default_value_t = 0.0)]
-        holonomy_threshold: f64,
+        /// Output-side holonomy threshold (omit to use config file; pass 0 to explicitly disable)
+        #[arg(long)]
+        holonomy_threshold: Option<f64>,
 
-        /// Input-side holonomy threshold (0.0 = disabled)
-        #[arg(long, default_value_t = 0.0)]
-        input_holonomy_threshold: f64,
+        /// Input-side holonomy threshold (omit to use config file; pass 0 to explicitly disable)
+        #[arg(long)]
+        input_holonomy_threshold: Option<f64>,
 
-        /// Input-side norm threshold (0.0 = disabled)
-        #[arg(long, default_value_t = 0.0)]
-        input_norm_threshold: f64,
+        /// Input-side norm threshold (omit to use config file; pass 0 to explicitly disable)
+        #[arg(long)]
+        input_norm_threshold: Option<f64>,
 
         /// Holonomy sliding window size
         #[arg(long, default_value_t = 8usize)]

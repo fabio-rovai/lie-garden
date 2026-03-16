@@ -45,9 +45,9 @@ pub async fn run_chat(config: ChatConfig) -> Result<()> {
         prove_every_step: config.prove_every_step,
         holonomy_window_size: None,
         json_startup: false,
-        holonomy_threshold: 0.0,
-        input_holonomy_threshold: 0.0,
-        input_norm_threshold: 0.0,
+        holonomy_threshold: Some(0.0),
+        input_holonomy_threshold: Some(0.0),
+        input_norm_threshold: Some(0.0),
         data_dir: None,
     };
 

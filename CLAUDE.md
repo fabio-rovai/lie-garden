@@ -43,7 +43,33 @@ gravrail init --data-dir ~/.gravrail
 
 # Start MCP server (stdio)
 gravrail serve --data-dir ~/.gravrail
+
+# Start confinement proxy
+gravrail proxy --upstream http://localhost:11434 --port 8340
+
+# Auto-calibrate thresholds from benign traffic
+gravrail calibrate
+
+# Run jailbreak detection benchmark
+gravrail benchmark
+
+# Replay a session from the trajectory database
+gravrail replay --data-dir ~/.gravrail
 ```
+
+## Proxy Headers
+
+Every proxied response carries:
+
+| Header | Meaning |
+|--------|---------|
+| `x-gravrail-seq` | Confinement step counter |
+| `x-gravrail-state` | Current group state matrix elements |
+| `x-gravrail-holonomy` | Output-side sliding-window holonomy |
+| `x-gravrail-input-norm` | Algebra norm of the user message |
+| `x-gravrail-input-holonomy` | Input-side sliding-window holonomy |
+| `x-gravrail-drift` | Cosine distance between input and output algebra vectors |
+| `x-gravrail-block` | Present on 429: `input-holonomy`, `input-norm`, or `output-holonomy` |
 
 ## Testing
 
@@ -51,7 +77,7 @@ gravrail serve --data-dir ~/.gravrail
 cargo test
 ```
 
-24 tests across 8 files: group axioms (proptest), algebra identities (proptest), representation homomorphism (proptest), gauge holonomy, crypto binding/soundness (proptest), circuit confinement (proptest), integration negotiation, manipulation detection, lineage tamper detection.
+Tests cover: group axioms (proptest), algebra identities (proptest), representation homomorphism (proptest), gauge holonomy, crypto binding/soundness (proptest), circuit confinement (proptest), integration negotiation, manipulation detection, lineage tamper detection, proxy headers, chat multi-turn, trajectory persistence.
 
 ## Key Design Decisions
 

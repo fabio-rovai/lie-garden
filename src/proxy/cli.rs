@@ -46,12 +46,12 @@ pub struct ProxyConfig {
     pub holonomy_window_size: Option<usize>,
     /// If true, write {"port":N,"token":"..."} to stdout once the server is ready.
     pub json_startup: bool,
-    /// Output-side holonomy threshold. 0.0 = disabled.
-    pub holonomy_threshold: f64,
-    /// Input-side holonomy threshold. 0.0 = disabled.
-    pub input_holonomy_threshold: f64,
-    /// Input-side norm threshold. 0.0 = disabled.
-    pub input_norm_threshold: f64,
+    /// Output-side holonomy threshold. None = use file config; Some(0.0) = explicitly disabled.
+    pub holonomy_threshold: Option<f64>,
+    /// Input-side holonomy threshold. None = use file config; Some(0.0) = explicitly disabled.
+    pub input_holonomy_threshold: Option<f64>,
+    /// Input-side norm threshold. None = use file config; Some(0.0) = explicitly disabled.
+    pub input_norm_threshold: Option<f64>,
     pub data_dir: Option<std::path::PathBuf>,
 }
 
@@ -78,9 +78,9 @@ pub async fn run_proxy_returning_token(
     let pfc = file_cfg.proxy;
 
     let effective_max_state_norm = config.max_state_norm.or(pfc.max_state_norm);
-    let effective_holonomy_threshold = if config.holonomy_threshold > 0.0 { config.holonomy_threshold } else { pfc.holonomy_threshold };
-    let effective_input_holonomy_threshold = if config.input_holonomy_threshold > 0.0 { config.input_holonomy_threshold } else { pfc.input_holonomy_threshold };
-    let effective_input_norm_threshold = if config.input_norm_threshold > 0.0 { config.input_norm_threshold } else { pfc.input_norm_threshold };
+    let effective_holonomy_threshold = config.holonomy_threshold.unwrap_or(pfc.holonomy_threshold);
+    let effective_input_holonomy_threshold = config.input_holonomy_threshold.unwrap_or(pfc.input_holonomy_threshold);
+    let effective_input_norm_threshold = config.input_norm_threshold.unwrap_or(pfc.input_norm_threshold);
     let effective_window_size = config.holonomy_window_size
         .unwrap_or_else(|| if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 });
 
@@ -187,9 +187,9 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let pfc = file_cfg.proxy;
 
     let effective_max_state_norm = config.max_state_norm.or(pfc.max_state_norm);
-    let effective_holonomy_threshold = if config.holonomy_threshold > 0.0 { config.holonomy_threshold } else { pfc.holonomy_threshold };
-    let effective_input_holonomy_threshold = if config.input_holonomy_threshold > 0.0 { config.input_holonomy_threshold } else { pfc.input_holonomy_threshold };
-    let effective_input_norm_threshold = if config.input_norm_threshold > 0.0 { config.input_norm_threshold } else { pfc.input_norm_threshold };
+    let effective_holonomy_threshold = config.holonomy_threshold.unwrap_or(pfc.holonomy_threshold);
+    let effective_input_holonomy_threshold = config.input_holonomy_threshold.unwrap_or(pfc.input_holonomy_threshold);
+    let effective_input_norm_threshold = config.input_norm_threshold.unwrap_or(pfc.input_norm_threshold);
     let effective_window_size = config.holonomy_window_size
         .unwrap_or_else(|| if pfc.holonomy_window != 0 { pfc.holonomy_window } else { 8 });
 

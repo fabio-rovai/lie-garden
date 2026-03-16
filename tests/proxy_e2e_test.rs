@@ -32,9 +32,9 @@ async fn start_proxy_against(mock_url: String) -> (u16, String) {
         prove_every_step: false,
         holonomy_window_size: Some(8),
         json_startup: false,
-        holonomy_threshold: 0.0,
-        input_holonomy_threshold: 0.0,
-        input_norm_threshold: 0.0,
+        holonomy_threshold: Some(0.0),
+        input_holonomy_threshold: Some(0.0),
+        input_norm_threshold: Some(0.0),
         data_dir: None,
     };
 
@@ -191,9 +191,9 @@ async fn test_proxy_blocks_reachability_violation() {
                 prove_every_step: false,
                 holonomy_window_size: Some(8),
                 json_startup: false,
-                holonomy_threshold: 0.0,
-                input_holonomy_threshold: 0.0,
-                input_norm_threshold: 0.0,
+                holonomy_threshold: Some(0.0),
+                input_holonomy_threshold: Some(0.0),
+                input_norm_threshold: Some(0.0),
                 data_dir: None,
             },
             move |t| {
