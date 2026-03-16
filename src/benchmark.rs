@@ -188,7 +188,9 @@ async fn collect_metrics(
             .await
             .with_context(|| format!("{} request {} failed", label, i))?;
 
-        if !resp.status().is_success() {
+        let status = resp.status();
+        if !status.is_success() {
+            eprintln!("warning: {} request {} returned status {}, skipping metrics", label, i, status);
             if i % 5 == 4 { print!("."); }
             let _ = std::io::Write::flush(&mut std::io::stdout());
             continue;
