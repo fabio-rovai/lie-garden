@@ -93,6 +93,7 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
         ])
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null())
+        .kill_on_drop(true)
         .spawn()
         .context("failed to spawn gravrail proxy subprocess")?;
 
@@ -110,6 +111,9 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
     let port = startup["port"].as_u64().context("missing port in startup JSON")? as u16;
     let token = startup["token"].as_str().context("missing token in startup JSON")?.to_string();
     println!("Proxy listening on port {}", port);
+
+    // Brief pause to let the proxy's accept loop become ready after printing startup JSON
+    tokio::time::sleep(Duration::from_millis(50)).await;
 
     // 4. Send benign prompts and collect metrics
     let client = reqwest::Client::new();
@@ -134,6 +138,14 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
             .send()
             .await
             .with_context(|| format!("request {} failed", i))?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            eprintln!("warning: request {} returned status {}, skipping metrics", i, status);
+            if i % 10 == 9 { print!("."); }
+            let _ = std::io::Write::flush(&mut std::io::stdout());
+            continue;
+        }
 
         if let Some(v) = resp.headers().get("x-gravrail-input-norm")
             .and_then(|h| h.to_str().ok())
@@ -185,6 +197,16 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
     let input_norm_threshold = mean_plus_3sigma(&input_norms);
     let max_state_norm_f = mean_plus_3sigma(&output_norms);
     let max_state_norm = if max_state_norm_f > 0.0 { Some(max_state_norm_f) } else { None };
+
+    // Check we have enough data
+    let min_samples = n / 4;
+    if input_norms.len() < min_samples {
+        anyhow::bail!(
+            "insufficient metric samples: got {}/{} input norm readings (expected at least {}). \
+             Check proxy startup or network errors above.",
+            input_norms.len(), n, min_samples
+        );
+    }
 
     // 7. Print summary
     println!();
