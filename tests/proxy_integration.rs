@@ -87,6 +87,9 @@ async fn setup_proxy(upstream_port: u16) -> (u16, String) {
         holonomy_threshold: 0.0,
         input_holonomy_threshold: 0.0,
         input_norm_threshold: 0.0,
+        db: None,
+        session_id: "test-session".to_string(),
+        circuit_id: "test-circuit".to_string(),
     });
 
     let router = build_router(state);

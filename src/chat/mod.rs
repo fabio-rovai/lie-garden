@@ -48,6 +48,7 @@ pub async fn run_chat(config: ChatConfig) -> Result<()> {
         holonomy_threshold: 0.0,
         input_holonomy_threshold: 0.0,
         input_norm_threshold: 0.0,
+        data_dir: None,
     };
 
     let running = Arc::new(AtomicBool::new(true));

@@ -2,6 +2,15 @@
 
 use std::sync::Arc;
 use std::time::Duration;
+
+fn make_session_id() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    format!("{:x}-proxy", t)
+}
 use tokio::sync::Mutex;
 
 use crate::circuit::define::Circuit;
@@ -33,6 +42,7 @@ pub struct ProxyConfig {
     pub input_holonomy_threshold: f64,
     /// Input-side norm threshold. 0.0 = disabled.
     pub input_norm_threshold: f64,
+    pub data_dir: Option<std::path::PathBuf>,
 }
 
 /// Run the proxy server with the given configuration, calling `token_cb` with
@@ -69,6 +79,16 @@ pub async fn run_proxy_returning_token(
     let circuit = Circuit::new(group, None);
     let circuit_id = config.circuit_id.unwrap_or_else(|| circuit.id.clone());
 
+    // Open trajectory database if data_dir is configured
+    let db = if let Some(ref dir) = config.data_dir {
+        std::fs::create_dir_all(dir)?;
+        let db_path = dir.join("state.db");
+        Some(std::sync::Arc::new(crate::state::StateDb::open(&db_path)?))
+    } else {
+        None
+    };
+    let session_id = make_session_id();
+
     // 3. Create SessionAuth, fire callback with token, then print to stderr
     let auth = SessionAuth::new();
     let token = auth.token().to_owned();
@@ -95,6 +115,9 @@ pub async fn run_proxy_returning_token(
         holonomy_threshold: effective_holonomy_threshold,
         input_holonomy_threshold: effective_input_holonomy_threshold,
         input_norm_threshold: effective_input_norm_threshold,
+        db,
+        session_id,
+        circuit_id: circuit_id.clone(),
     });
 
     // 7. Spawn watchdog future on tokio
@@ -165,6 +188,16 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let circuit = Circuit::new(group, None);
     let circuit_id = config.circuit_id.unwrap_or_else(|| circuit.id.clone());
 
+    // Open trajectory database if data_dir is configured
+    let db = if let Some(ref dir) = config.data_dir {
+        std::fs::create_dir_all(dir)?;
+        let db_path = dir.join("state.db");
+        Some(std::sync::Arc::new(crate::state::StateDb::open(&db_path)?))
+    } else {
+        None
+    };
+    let session_id = make_session_id();
+
     // 3. Create SessionAuth, save token string before auth is moved into state
     let auth = SessionAuth::new();
     let token_str = auth.token().to_owned();
@@ -190,6 +223,9 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
         holonomy_threshold: effective_holonomy_threshold,
         input_holonomy_threshold: effective_input_holonomy_threshold,
         input_norm_threshold: effective_input_norm_threshold,
+        db,
+        session_id,
+        circuit_id: circuit_id.clone(),
     });
 
     // 7. Spawn watchdog future on tokio

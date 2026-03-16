@@ -34,6 +34,9 @@ pub struct ProxyState {
     pub input_holonomy_threshold: f64,
     /// Input-side norm threshold. 0.0 = disabled.
     pub input_norm_threshold: f64,
+    pub db: Option<Arc<crate::state::StateDb>>,
+    pub session_id: String,
+    pub circuit_id: String,
 }
 
 /// Build the Axum router with a catch-all handler.
@@ -283,11 +286,33 @@ async fn handle_non_streaming_response(
             let proof_hash = result.proof.as_ref().map(|p| p.trace_root.clone());
 
             // Compute drift between input and output coefficient vectors
-            let drift = if let Some(ref ir) = input_result {
-                cosine_distance(&ir.coeffs, &result.raw_coeffs)
+            let drift_val: Option<f64> = if let Some(ref ir) = input_result {
+                Some(cosine_distance(&ir.coeffs, &result.raw_coeffs))
             } else {
-                0.0
+                None
             };
+            // Keep legacy drift for headers (0.0 if no input)
+            let drift = drift_val.unwrap_or(0.0);
+
+            // Persist trajectory step (fire-and-forget)
+            if let Some(db) = &state.db {
+                let db = Arc::clone(db);
+                let session_id = state.session_id.clone();
+                let circuit_id = state.circuit_id.clone();
+                let step = result.seq;
+                let i_norm = input_result.as_ref().map(|ir| ir.norm);
+                let i_hol = input_result.as_ref().map(|ir| ir.holonomy);
+                let o_norm: f64 = result.state_elements.iter().map(|x| x * x).sum::<f64>().sqrt();
+                let o_hol = Some(result.output_holonomy);
+                let raw = result.raw_coeffs.clone();
+                tokio::spawn(async move {
+                    let _ = db.insert_trajectory_step(
+                        &session_id, &circuit_id, step,
+                        i_norm, i_hol, o_norm, o_hol, drift_val,
+                        &raw,
+                    );
+                });
+            }
 
             let axum_status =
                 StatusCode::from_u16(status.as_u16()).unwrap_or(StatusCode::OK);

@@ -103,6 +103,19 @@ enum Commands {
         /// Holonomy sliding window size
         #[arg(long, default_value_t = 8usize)]
         holonomy_window: usize,
+
+        /// Data directory for trajectory persistence (optional; if set, enables SQLite logging)
+        #[arg(long)]
+        data_dir: Option<String>,
+    },
+    /// Replay a proxy session from the trajectory database
+    Replay {
+        /// Session ID to replay (omit to list recent sessions and use the most recent)
+        #[arg(long)]
+        session: Option<String>,
+        /// Data directory containing state.db
+        #[arg(long, default_value = "~/.gravrail")]
+        data_dir: String,
     },
     /// Run jailbreak detection benchmark
     Benchmark,
@@ -158,6 +171,7 @@ async fn main() -> anyhow::Result<()> {
             input_holonomy_threshold,
             input_norm_threshold,
             holonomy_window,
+            data_dir,
         } => {
             let config = gravrail::proxy::cli::ProxyConfig {
                 circuit_id: None,
@@ -174,8 +188,55 @@ async fn main() -> anyhow::Result<()> {
                 holonomy_threshold,
                 input_holonomy_threshold,
                 input_norm_threshold,
+                data_dir: data_dir.map(|d| std::path::PathBuf::from(expand_tilde(&d))),
             };
             gravrail::proxy::cli::run_proxy(config).await?;
+        }
+        Commands::Replay { session, data_dir } => {
+            let path = std::path::PathBuf::from(expand_tilde(&data_dir));
+            std::fs::create_dir_all(&path)?;
+            let db = gravrail::state::StateDb::open(&path.join("state.db"))?;
+
+            let session_id = if let Some(s) = session {
+                s
+            } else {
+                let sessions = db.list_trajectory_sessions()?;
+                if sessions.is_empty() {
+                    println!("No trajectory sessions found in {}", path.display());
+                    return Ok(());
+                }
+                println!("Available sessions (most recent first):");
+                for (i, s) in sessions.iter().take(10).enumerate() {
+                    println!("  {}. {}", i + 1, s);
+                }
+                sessions.into_iter().next().unwrap()
+            };
+
+            let steps = db.query_trajectory_steps(&session_id)?;
+            if steps.is_empty() {
+                println!("No steps found for session {}", session_id);
+                return Ok(());
+            }
+
+            println!("Session: {}", session_id);
+            println!("{:<6} {:>9} {:>9} {:>9} {:>9} {:>7}  Timestamp",
+                "Step", "In-Norm", "In-Hol", "Out-Norm", "Out-Hol", "Drift");
+            println!("{}", "─".repeat(72));
+
+            for s in &steps {
+                let ts = fmt_ts(s.ts);
+                let flag = if s.output_hol.map(|h| h > 0.5).unwrap_or(false) { " !" } else { "" };
+                println!("{:<6} {:>9} {:>9} {:>9.4} {:>9} {:>7}  {}{}",
+                    s.step,
+                    s.input_norm.map(|v| format!("{:.4}", v)).unwrap_or("—".into()),
+                    s.input_hol.map(|v| format!("{:.4}", v)).unwrap_or("—".into()),
+                    s.output_norm,
+                    s.output_hol.map(|v| format!("{:.4}", v)).unwrap_or("—".into()),
+                    s.drift.map(|v| format!("{:.4}", v)).unwrap_or("—".into()),
+                    ts,
+                    flag,
+                );
+            }
         }
         Commands::Benchmark => {
             gravrail::benchmark::run_benchmark().await?;
@@ -187,4 +248,12 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn fmt_ts(ms: i64) -> String {
+    let secs = (ms / 1000) as u64;
+    let s = secs % 60;
+    let m = (secs / 60) % 60;
+    let h = (secs / 3600) % 24;
+    format!("{:02}:{:02}:{:02} UTC", h, m, s)
 }
