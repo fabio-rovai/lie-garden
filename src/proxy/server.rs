@@ -306,11 +306,13 @@ async fn handle_non_streaming_response(
                 let o_hol = Some(result.output_holonomy);
                 let raw = result.raw_coeffs.clone();
                 tokio::spawn(async move {
-                    let _ = db.insert_trajectory_step(
+                    if let Err(e) = db.insert_trajectory_step(
                         &session_id, &circuit_id, step,
                         i_norm, i_hol, o_norm, o_hol, drift_val,
                         &raw,
-                    );
+                    ) {
+                        eprintln!("[gravrail-proxy] trajectory persist error: {}", e);
+                    }
                 });
             }
 

@@ -4,12 +4,22 @@ use std::sync::Arc;
 use std::time::Duration;
 
 fn make_session_id() -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
     use std::time::{SystemTime, UNIX_EPOCH};
+
     let t = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    format!("{:x}-proxy", t)
+    let pid = std::process::id();
+
+    let mut hasher = DefaultHasher::new();
+    t.hash(&mut hasher);
+    pid.hash(&mut hasher);
+    let h = hasher.finish();
+
+    format!("{:x}-{:x}", t, h)
 }
 use tokio::sync::Mutex;
 

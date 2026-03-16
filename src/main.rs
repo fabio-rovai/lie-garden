@@ -200,7 +200,7 @@ async fn main() -> anyhow::Result<()> {
             let session_id = if let Some(s) = session {
                 s
             } else {
-                let sessions = db.list_trajectory_sessions()?;
+                let mut sessions = db.list_trajectory_sessions()?;
                 if sessions.is_empty() {
                     println!("No trajectory sessions found in {}", path.display());
                     return Ok(());
@@ -209,7 +209,7 @@ async fn main() -> anyhow::Result<()> {
                 for (i, s) in sessions.iter().take(10).enumerate() {
                     println!("  {}. {}", i + 1, s);
                 }
-                sessions.into_iter().next().unwrap()
+                sessions.remove(0)
             };
 
             let steps = db.query_trajectory_steps(&session_id)?;
