@@ -12,3 +12,4 @@ pub mod server;
 pub mod proxy;
 pub mod util;
 pub mod chat;
+pub mod calibrate;

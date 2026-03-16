@@ -104,6 +104,12 @@ enum Commands {
         #[arg(long, default_value_t = 8usize)]
         holonomy_window: usize,
     },
+    /// Calibrate holonomy/norm thresholds from benign traffic
+    Calibrate {
+        /// Number of calibration prompts (max 50)
+        #[arg(long, default_value_t = 50usize)]
+        n_prompts: usize,
+    },
 }
 
 #[tokio::main]
@@ -168,6 +174,11 @@ async fn main() -> anyhow::Result<()> {
                 input_norm_threshold,
             };
             gravrail::proxy::cli::run_proxy(config).await?;
+        }
+        Commands::Calibrate { n_prompts } => {
+            gravrail::calibrate::run_calibrate(gravrail::calibrate::CalibrateConfig {
+                n_prompts,
+            }).await?;
         }
     }
     Ok(())
