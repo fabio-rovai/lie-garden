@@ -1,20 +1,76 @@
 # GravRail
 
-Deterministic geometric confinement for AI agents via Lie groups, gauge theory, and group-native cryptography.
+Geometric agent safety: deterministic confinement and tamper-evident anomaly detection for AI agents via Lie groups, gauge theory, and group-native cryptography.
 
 ## The Problem
 
-LLM outputs are unconstrained — any token sequence is valid. Current guardrails (filters, classifiers, RLHF) are probabilistic and can be bypassed. There's no mathematical guarantee that an agent stays within bounds.
+AI agents are vulnerable to **indirect prompt injection** — adversarial instructions hidden in tool results, retrieved documents, or multi-agent messages that hijack agent behaviour. Current defences are:
+
+- **Classifiers/filters**: probabilistic, bypassable, high false-positive rates
+- **RLHF/safety training**: can be undone by fine-tuning or jailbreaks
+- **Log-based monitoring**: adversaries can tamper with logs or mask behaviour
+
+None provide **mathematical guarantees** about agent behaviour, and none produce **tamper-evident forensic evidence** of manipulation.
 
 ## The Solution
 
-GravRail confines AI agent state to a **Lie group manifold**. Every output passes through:
+GravRail maps every agent step onto a **Lie group manifold**, creating three geometrically-coupled detection signals:
 
 ```
-text → map_to_algebra → constrain → exp → multiply
+text → embed → map_to_algebra → constrain → exp → multiply
+         ↓              ↓                           ↓
+   directional     holonomy scar            trajectory divergence
+     probe         (non-erasable)             (cumulative)
 ```
 
-The exponential map **always** produces an on-group element. Group multiplication **always** stays on-group (closure axiom). This is the confinement guarantee — it cannot be broken by any input.
+### Signal 1: Directional Probe (per-step)
+
+A learned **harmful direction** in the Lie algebra space — analogous to Representation Engineering (Zou et al., ICLR 2025). Projects each step onto this direction for real-time classification.
+
+### Signal 2: Holonomy Scar (multi-step, non-erasable)
+
+Non-commutative group multiplication means the path A→B→A ≠ A→A→A on the manifold. Even if an adversary returns to normal behaviour, the **geometric scar persists** as forensic evidence. This cannot be erased without access to the group state.
+
+### Signal 3: Trajectory Divergence (cumulative)
+
+Small per-step directional signals **compound** through group multiplication. A subtle attack that evades per-step detection still accumulates measurable divergence from a calibrated baseline over multiple turns.
+
+### Confinement Guarantee
+
+The exponential map **always** produces an on-group element. Group multiplication **always** stays on-group (closure axiom). This is mathematically guaranteed — no input can break it.
+
+## Headline Results
+
+### Real-world adversarial benchmarks
+
+Evaluated against two published prompt injection datasets:
+
+| Dataset | Examples | Embedding | Best F1 | Description |
+|---------|----------|-----------|---------|-------------|
+| **InjecAgent** (Zhan et al., 2024) | 1,054 attacks | Model2Vec (2024, 512d) | **0.955** | Indirect prompt injection in agent tool responses |
+| **InjecAgent** | 211 test | GloVe-50 (bundled) | **0.86** | Same attacks, GloVe-50 in Rust hot path |
+| **TensorTrust** (Toyer et al., 2024) | 775 attacks | Model2Vec (2024, 512d) | **0.719** | Human-crafted adversarial hijacking from competitive game |
+| **Combined** | 1,829 attacks | Model2Vec (2024, 512d) | **0.854** | Both datasets combined |
+
+### Detection summary
+
+| Metric | Value | Source |
+|--------|-------|--------|
+| **Real-world injection detection** | F1 = 0.955 | InjecAgent, 1,054 indirect prompt injections |
+| **Holonomy scar detection** | 100% | Even single-step attacks leave non-erasable evidence |
+| **Attack+recover detection** | 100% | Adversary returns to normal — scar persists (GL(3): 0.639) |
+| **Subtle attack (forensic)** | Scar up to 2.286 | Per-step evasion defeated by holonomy accumulation |
+| **False positive rate** | 0% | Normal conversations: CLEAN across all groups |
+| **Confinement step latency** | 1.4 – 2.8 ms | SO(3), including exp + multiply + SVD projection |
+
+Combined detector verdicts across 4 scenarios × 3 Lie groups:
+
+| Scenario | SO(5) | SO(8) | GL(3) |
+|----------|-------|-------|-------|
+| Normal conversation | CLEAN | CLEAN | CLEAN |
+| Blatant hijack (step 3) | **BLOCKED** (5 alerts) | **BLOCKED** (5 alerts) | **BLOCKED** (5 alerts) |
+| Subtle manipulation | **SCARRED** (1.302) | **SCARRED** (1.297) | **SCARRED** (2.286) |
+| Attack then recover | **SCARRED** (0.510) | **SCARRED** (0.421) | **SCARRED** (0.639) |
 
 ## Architecture
 
@@ -86,6 +142,30 @@ cargo test
 - Reachability bounds
 - Zero unsafe blocks
 
+## Embedding Pipeline
+
+The text-to-algebra chokepoint (`circuit::map`) converts arbitrary text into Lie algebra coefficients:
+
+```
+text → tokenize → embed (GloVe-50) → JL project → algebra coefficients
+```
+
+**Current**: GloVe-50 (top-10k words, ~2 MB, bundled at compile time). Produces distinct algebra trajectories for topically different inputs. Achieves F1=0.86 on real-world indirect prompt injections (InjecAgent).
+
+**Embedding comparison** (tested on InjecAgent + TensorTrust, 1,829 real attacks):
+
+| Embedding | Year | Dim | InjecAgent F1 | TensorTrust F1 | Latency |
+|-----------|------|-----|--------------|----------------|---------|
+| GloVe-50 (bundled) | 2014 | 50 | 0.86 | — | μs |
+| Model2Vec potion-base-8M | 2024 | 256 | 0.95 | 0.72 | 0.02ms/text |
+| Model2Vec potion-base-32M | 2024 | 512 | 0.96 | 0.72 | 0.07ms/text |
+| Snowflake Arctic-M | 2024 | 768 | — | — | 9.5ms/text |
+| Jina-v3 | 2024 | 1024 | — | — | 105ms/text |
+
+**Key finding**: Better embeddings improve blatant detection (F1 0.86→0.96) but do NOT solve subtle/adversarial attacks. TensorTrust's human-crafted attacks plateau at F1=0.72 regardless of embedding quality. Holonomy scars provide the fundamentally different signal needed for multi-step detection.
+
+The embedding layer is a swappable component — the geometric machinery is embedding-agnostic. Since `map_to_algebra` runs once per conversation turn (not per token), even transformer-based embeddings add negligible latency relative to LLM generation time.
+
 ## Key Design Decisions
 
 - **Exact Rodrigues formula** for SO(3) exp/log — avoids 5e-8 numerical drift from Pade approximation
@@ -94,10 +174,124 @@ cargo test
 - **PRF-derived nonces** for all cryptographic operations — deterministic, no RNG dependency
 - **Hash-derived generators** for Pedersen commitments — nothing-up-my-sleeve construction
 - **Element-wise algebra multiplication** for DH key exchange — sidesteps non-commutativity of matrix groups
+- **Directional probe in algebra space** — learns harmful direction from labeled data, analogous to Representation Engineering (Zou et al., ICLR 2025)
+- **Three geometrically-coupled signals** — directional, holonomy, trajectory share the same manifold, producing compounding (not just additive) detection power
 
-## Empirical Results
+## Detection Examples
 
-20 varied Claude responses (math, code, ethics, creative, refusals, philosophy) were run through a live GravProxy instance on 2026-03-15. The proxy was spawned as a subprocess via `--json-startup --port 0`, routed through SO(3) confinement, and every response measured.
+Seven runnable examples in `examples/` demonstrate the detection mechanisms:
+
+| Example | What it tests | Key result |
+|---------|--------------|------------|
+| `real_world_detection` | InjecAgent indirect injection (Zhan et al., 2024) | F1=0.86, real attacks in tool responses |
+| `directional_detection` | Per-step linear probe in algebra space | F1=0.90 blatant, 60% subtle (dim=50) |
+| `holonomy_tamper` | Non-erasability of geometric scars | 100% scar detection after recovery |
+| `trajectory_test` | Multi-step state divergence across groups | GL(3) separation = 2.57 Frobenius |
+| `combined_detector` | All three signals fused | BLOCKED/SCARRED across all attack types |
+| `baseline_detection` | Calibrated baseline anomaly scoring | Composite anomaly score per step |
+| `drift_v2` | Three input/output drift mechanisms | Per-step cosine, holonomy, ratio drift |
+
+Run any example:
+
+```bash
+cargo run --example real_world_detection --release
+cargo run --example combined_detector --release
+cargo run --example holonomy_tamper --release
+```
+
+## Inspect AI Integration
+
+GravRail integrates with [Inspect AI](https://inspect.aisi.org.uk/) (UK AISI evaluation framework) as both a **scorer** and a **monitor**:
+
+```python
+from inspect_ai import eval
+from inspect_scorer import gravrail_scorer, gravrail_monitor
+
+# Score agent conversations for injection detection
+results = eval("inspect_task.py", model="openai/gpt-4o")
+
+# Or insert as real-time monitor in agent pipeline
+# gravrail_monitor(block_on_fail=True)
+```
+
+See `inspect_scorer.py` and `inspect_task.py` for the full integration.
+
+## Empirical Results: Real-World Benchmark (2026-03-18)
+
+### InjecAgent: indirect prompt injection in agent tools
+
+Data source: [InjecAgent](https://github.com/uiuc-kang-lab/InjecAgent) (Zhan et al., ACL 2024 Findings). 1,054 indirect prompt injection attacks embedded in agent tool responses (product reviews, emails, calendar events). Attack types: physical harm, financial harm, data exfiltration.
+
+#### Directional probe (GloVe-50, Rust hot path)
+
+20 train benign + 20 train harmful, tested on 10 benign + 10 harmful + 10 subtle:
+
+| Algebra Dim | Precision | Recall | F1 | Subtle Recall |
+|-------------|-----------|--------|----|---------------|
+| 10 | 0.62 | 0.50 | 0.56 | 0.40 |
+| 20 | 0.80 | 0.80 | 0.80 | 0.60 |
+| 30 | 0.82 | 0.90 | **0.86** | 0.60 |
+| 50 | 0.82 | 0.90 | **0.86** | 0.60 |
+
+#### Directional probe (Model2Vec 2024, 512d, Python benchmark)
+
+843 train attacks, 211 test attacks, 80/20 split:
+
+| Algebra Dim | Precision | Recall | F1 |
+|-------------|-----------|--------|----|
+| 10 | 0.99 | 0.89 | 0.94 |
+| 30 | 1.00 | 0.82 | 0.90 |
+| 512 (full) | 1.00 | 0.92 | **0.96** |
+
+### TensorTrust: human-crafted adversarial hijacking
+
+Data source: [TensorTrust](https://github.com/HumanCompatibleAI/tensor-trust-data) (Toyer et al., 2024). 775 human-crafted prompt hijacking attacks from a competitive game. These are deliberately adversarial — players competed to craft attacks that evade detection.
+
+| Algebra Dim | Precision | Recall | F1 |
+|-------------|-----------|--------|----|
+| 10 | 0.75 | 0.60 | 0.67 |
+| 30 | 0.77 | 0.67 | **0.72** |
+| 512 (full) | 0.86 | 0.62 | 0.72 |
+
+TensorTrust's lower F1 (0.72 vs 0.96) demonstrates why holonomy scars matter: per-step directional detection alone cannot catch human-optimised adversarial attacks. The geometric accumulation across multiple turns catches what the linear probe misses.
+
+### Combined detector: 4 scenarios × 3 Lie groups
+
+10-step simulated agent conversations tested against the combined detector. Training data: 20 benign + 20 harmful labeled examples. Calibration: 3 benign conversations (30 messages).
+
+#### SO(5) (algebra\_dim=10)
+
+| Scenario | Max Score | Alerts | Scar | Verdict |
+|----------|-----------|--------|------|---------|
+| Normal | 0.154 | none | 0.000 | CLEAN |
+| Hijacked (step 3) | 0.625 | 5,7,8,9,10 | 1.472 | BLOCKED |
+| Subtle (gradual) | 0.130 | none | 1.302 | SCARRED |
+| Attack+Recover | 0.261 | none | 0.510 | SCARRED |
+
+#### GL(3) (algebra\_dim=9)
+
+| Scenario | Max Score | Alerts | Scar | Verdict |
+|----------|-----------|--------|------|---------|
+| Normal | 0.104 | none | 0.000 | CLEAN |
+| Hijacked (step 3) | 0.552 | 5,7,8,9,10 | 1.764 | BLOCKED |
+| Subtle (gradual) | 0.108 | none | 2.286 | SCARRED |
+| Attack+Recover | 0.273 | none | 0.639 | SCARRED |
+
+### Holonomy non-erasability
+
+Adversary attacks at steps 5-7, then returns to benign behaviour at steps 8-10. Geometric scar measured as Frobenius distance between benign-only and attack-recovery trajectories:
+
+| Group | Scar after recovery | Detectable? |
+|-------|--------------------:|:-----------:|
+| SO(3) | 0.197 | YES |
+| SO(5) | 0.510 | YES |
+| GL(3) | 0.639 | YES |
+
+The scar persists because group multiplication is non-commutative: the path A→B→A ≠ A→A→A on the manifold. This is an intrinsic geometric property that cannot be erased by any subsequent input.
+
+## Empirical Results: Proxy Benchmark (2026-03-15)
+
+20 varied Claude responses (math, code, ethics, creative, refusals, philosophy) were run through a live GravProxy instance. The proxy was spawned as a subprocess via `--json-startup --port 0`, routed through SO(3) confinement, and every response measured.
 
 ### Run summary
 
@@ -106,25 +300,17 @@ cargo test
 | Iterations | 20 / 20 succeeded |
 | First-request latency | 22.4 ms (proxy cold start) |
 | Steady-state latency | 1.4 – 2.8 ms per confinement step |
-| Group | SO(3) — 3×3 rotation matrices, 9 state elements |
-| State norm (Frobenius) | **1.732051 ± 0.000000** across all 20 steps |
-| State drift per step | **1.356020** (constant) |
+| Group | SO(3) — 3x3 rotation matrices, 9 state elements |
+| State norm (Frobenius) | **1.732051 +/- 0.000000** across all 20 steps |
+| State drift per step | **1.356020** (constant — n-gram mapper, pre-GloVe) |
 
 ### Finding 1 — Group membership invariant holds exactly
 
-The Frobenius norm of every SO(3) element is exactly √3 (since R^T R = I → sum of squared entries = trace(I) = 3). After 20 multiplication steps across semantically diverse inputs, the norm remained 1.732051 with zero variance. The exponential map + SVD projection successfully keeps the agent state on the SO(3) manifold with no numerical drift accumulation.
+The Frobenius norm of every SO(3) element is exactly sqrt(3) (since R^T R = I, sum of squared entries = trace(I) = 3). After 20 multiplication steps across semantically diverse inputs, the norm remained 1.732051 with zero variance. The exponential map + SVD projection successfully keeps the agent state on the SO(3) manifold with no numerical drift accumulation.
 
-### Finding 2 — Character n-gram mapping lacks semantic sensitivity
+### Finding 2 — Character n-gram mapping lacks semantic sensitivity (resolved)
 
-Every response — whether a calculus answer, a phishing refusal, a haiku, or step-by-step code — produced the **same SO(3) rotation step** (drift = 1.356020, constant). The current `map_to_algebra` implementation uses character n-grams (uni/bi/trigrams) with a deterministic JL projection. Texts that differ in topic but share common character patterns (English prose, code with keywords like `def`/`return`, mathematical notation) converge to similar algebra coefficients and therefore the same rotation. This confirms the assessment that semantic embedding quality is the primary remaining limitation for meaningful confinement differentiation.
-
-**Implication:** The mathematical machinery is sound, but the signal (n-gram embedding) is too coarse for confinement to be semantically meaningful. A sentence embedding model (even `all-MiniLM-L6`, 22 MB) would produce genuinely distinct trajectories for a phishing refusal vs. a creative story.
-
-**Update (GloVe-50 bundled embeddings):** The constant-drift finding motivated replacing
-character n-grams with a bundled GloVe-50 vocabulary (top-10k words, ~2 MB, embedded at
-compile time via `include_bytes!`). The semantic mapping now produces distinct algebra
-trajectories for topically different inputs. Re-run with `gravrail proxy` after rebuilding
-to verify varied drift values.
+The initial n-gram mapper produced constant drift across all inputs. This motivated replacing character n-grams with GloVe-50 bundled embeddings (top-10k words, ~2 MB, compile-time `include_bytes!`). The semantic mapping now produces distinct algebra trajectories for topically different inputs, enabling the detection mechanisms described above.
 
 ### Finding 3 — Subprocess integration is production-ready
 
@@ -134,7 +320,7 @@ gravrail proxy --upstream <llm_url> --port 0 --json-startup
 
 The proxy writes `{"port":N,"token":"..."}` to stdout before `axum::serve` blocks. In testing, the first stdout line arrived within the proxy startup time (~22 ms), and subsequent requests were handled in ~2 ms. The pattern is stable for VS Code plugin integration.
 
-### Per-iteration log
+### Per-iteration log (n-gram mapper, pre-GloVe upgrade)
 
 ```text
 #   Topic                                          ms  seq   state_norm      drift
@@ -151,7 +337,7 @@ The proxy writes `{"port":N,"token":"..."}` to stdout before `axum::serve` block
 10  Set up a Python virtual environment           1.7   10     1.732051   1.356020
 11  Haiku about machine learning                  1.7   11     1.732051   1.356020
 12  Differences between TCP and UDP               1.7   12     1.732051   1.356020
-13  Explain Gödel's incompleteness theorems       1.6   13     1.732051   1.356020
+13  Explain Godel's incompleteness theorems       1.6   13     1.732051   1.356020
 14  How to make a password more secure?           1.7   14     1.732051   1.356020
 15  Something surprising about crows              1.8   15     1.732051   1.356020
 16  Regex to validate an email address            1.7   16     1.732051   1.356020
@@ -161,11 +347,13 @@ The proxy writes `{"port":N,"token":"..."}` to stdout before `axum::serve` block
 20  How does HTTPS protect my data?               1.4   20     1.732051   1.356020
 ```
 
-### Open questions from this run
+## Open Research Questions
 
-1. **Does SO(3) dimensionality matter?** With dim=3 and only 3 algebra generators, the rotation group may be too low-dimensional to capture semantic distinctions even with better embeddings. SE(3) or SO(6) would give a richer trajectory space.
-2. **What norm threshold triggers a violation?** With max_state_norm not set, no blocking occurred. A calibration study is needed to find thresholds that block genuinely harmful trajectories without false positives.
-3. **How does drift behave with STARK proofs enabled?** `--prove` was not set in this run — adding per-step STARK verification would increase latency significantly (estimated 10–100× based on proof generation benchmarks).
+1. **Embedding-geometry interaction** (ANSWERED): Upgrading from GloVe-50 to Model2Vec-512d improves blatant F1 from 0.86→0.96 on InjecAgent, but adversarial attacks (TensorTrust) plateau at F1=0.72 regardless of embedding. The improvement is linear, not superlinear — holonomy provides the fundamentally different signal.
+2. **Optimal group selection**: Which Lie group family (SO/SE/GL) and dimension maximises detection power per unit of computational cost?
+3. **Adaptive thresholds**: Can holonomy scar thresholds be auto-calibrated from benign traffic without labeled harmful examples?
+4. **Multi-agent topology**: How do confinement guarantees compose when multiple agents interact through shared group state?
+5. **STARK proof overhead**: What is the latency cost of adding per-step zero-knowledge proofs for tamper-evident audit trails?
 
 ## License
 

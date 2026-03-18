@@ -9,6 +9,7 @@ use gravrail::crypto::commit::{commit, verify_commit};
 use gravrail::crypto::zkproof::{prove_knowledge, verify_knowledge};
 use gravrail::gauge::bundle::FiberBundle;
 use gravrail::gauge::connection::Connection;
+use gravrail::crypto::stark::{prove_confinement, verify_confinement_proof, prove_lineage, verify_lineage_proof};
 
 fn bench_exp(c: &mut Criterion) {
     let mut group = c.benchmark_group("exp");
@@ -264,6 +265,49 @@ fn bench_scaling(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_stark(c: &mut Criterion) {
+    let mut group = c.benchmark_group("stark");
+
+    // Confinement proof: 4-dim algebra with partial mask
+    let raw = vec![0.5, -0.3, 0.7, 0.1];
+    let mask = vec![true, false, true, false];
+    let constrained = vec![0.5, 0.0, 0.7, 0.0];
+
+    group.bench_function("confinement_prove_dim4", |b| {
+        b.iter(|| prove_confinement(black_box(&raw), black_box(&mask), black_box(&constrained)))
+    });
+
+    let conf_proof = prove_confinement(&raw, &mask, &constrained);
+    group.bench_function("confinement_verify_dim4", |b| {
+        b.iter(|| verify_confinement_proof(black_box(&conf_proof)))
+    });
+
+    // Lineage proof: 8-event chain
+    let events: Vec<String> = (0..8).map(|i| {
+        format!("session1:{}:1700000{}:step:grav_step:coeffs_{}", i + 1, i, i)
+    }).collect();
+
+    group.bench_function("lineage_prove_8events", |b| {
+        b.iter(|| prove_lineage(black_box(&events)))
+    });
+
+    let lin_proof = prove_lineage(&events);
+    group.bench_function("lineage_verify_8events", |b| {
+        b.iter(|| verify_lineage_proof(black_box(&lin_proof)))
+    });
+
+    // Lineage proof: 32-event chain (scaling test)
+    let events_32: Vec<String> = (0..32).map(|i| {
+        format!("session1:{}:1700000{}:step:grav_step:coeffs_{}", i + 1, i, i)
+    }).collect();
+
+    group.bench_function("lineage_prove_32events", |b| {
+        b.iter(|| prove_lineage(black_box(&events_32)))
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_exp,
@@ -277,5 +321,6 @@ criterion_group!(
     bench_holonomy,
     bench_bracket,
     bench_scaling,
+    bench_stark,
 );
 criterion_main!(benches);
