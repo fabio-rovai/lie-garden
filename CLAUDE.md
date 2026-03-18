@@ -1,6 +1,8 @@
-# GravRail
+# Lie Garden
 
-Deterministic geometric confinement for AI agents via Lie groups, gauge theory, and group-native cryptography.
+Geometric agent safety: deterministic confinement and tamper-evident anomaly detection for AI agents via Lie groups, gauge theory, and group-native cryptography.
+
+> **Note:** The project brand is "Lie Garden". The Rust crate, binary, CLI commands, MCP tool prefix (`grav_*`), HTTP headers (`x-gravrail-*`), and config paths (`~/.gravrail/`) retain the `gravrail` identifier for backwards compatibility.
 
 ## Architecture
 

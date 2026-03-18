@@ -2,7 +2,7 @@
 name = "gravrail"
 version = "0.1.0"
 edition = "2024"
-description = "Deterministic geometric confinement for AI agents — Lie groups, gauge theory, group-native crypto"
+description = "Lie Garden — geometric agent safety via Lie groups, gauge theory, and group-native cryptography"
 license = "MIT OR Apache-2.0"
 
 [[bin]]

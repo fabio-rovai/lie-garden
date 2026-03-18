@@ -304,7 +304,7 @@ pub async fn run_proxy(config: ProxyConfig) -> anyhow::Result<()> {
     let fd = lock_file.as_raw_fd();
     let ret = unsafe { libc::flock(fd, libc::LOCK_EX | libc::LOCK_NB) };
     if ret != 0 {
-        anyhow::bail!("Another GravProxy instance is already running (lock file: {})", lock_path.display());
+        anyhow::bail!("Another Lie Garden proxy instance is already running (lock file: {})", lock_path.display());
     }
     write!(&lock_file, "{}", std::process::id())?;
     eprintln!("[gravrail-proxy] PID lock: {}", lock_path.display());

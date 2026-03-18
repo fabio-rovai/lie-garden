@@ -66,8 +66,8 @@ impl Metrics {
 }
 
 pub async fn run_benchmark() -> Result<()> {
-    println!("GravRail Benchmark");
-    println!("══════════════════");
+    println!("Lie Garden Benchmark");
+    println!("════════════════════");
 
     // Start mock upstream
     let mock_port = crate::calibrate::start_mock_upstream_pub().await?;

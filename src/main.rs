@@ -6,7 +6,7 @@ use rmcp::ServiceExt;
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "gravrail", about = "Deterministic geometric confinement for AI agents")]
+#[command(name = "gravrail", about = "Lie Garden — geometric agent safety via Lie group confinement")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -146,14 +146,14 @@ async fn main() -> anyhow::Result<()> {
             let path = PathBuf::from(expand_tilde(&data_dir));
             std::fs::create_dir_all(&path)?;
             let _db = StateDb::open(&path.join("state.db"))?;
-            println!("GravRail initialized at {}", path.display());
+            println!("Lie Garden initialized at {}", path.display());
         }
         Commands::Serve { data_dir } => {
             let path = PathBuf::from(expand_tilde(&data_dir));
             std::fs::create_dir_all(&path)?;
             let db = StateDb::open(&path.join("state.db"))?;
             let server = GravRailServer::new(db);
-            eprintln!("GravRail MCP server starting ({} tools registered)", server.list_tool_definitions().len());
+            eprintln!("Lie Garden MCP server starting ({} tools registered)", server.list_tool_definitions().len());
             let service = server.serve(rmcp::transport::stdio()).await?;
             service.waiting().await?;
         }

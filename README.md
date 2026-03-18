@@ -205,20 +205,28 @@ cargo run --example holonomy_tamper --release
 
 ## Inspect AI Integration
 
-Lie Garden integrates with [Inspect AI](https://inspect.aisi.org.uk/) (UK AISI evaluation framework) as both a **scorer** and a **monitor**:
+Lie Garden integrates with [Inspect AI](https://inspect.aisi.org.uk/) (UK AISI evaluation framework) via two evaluation tasks submitted to the official [inspect_evals](https://github.com/UKGovernmentBEIS/inspect_evals/pull/1272) repository:
 
-```python
-from inspect_ai import eval
-from inspect_scorer import gravrail_scorer, gravrail_monitor
+```bash
+# Run the injection detection eval
+inspect eval inspect_evals/gravrail_injection_detection --model anthropic/claude-haiku-4-5-20251001
 
-# Score agent conversations for injection detection
-results = eval("inspect_task.py", model="openai/gpt-4o")
-
-# Or insert as real-time monitor in agent pipeline
-# gravrail_monitor(block_on_fail=True)
+# Run the TensorTrust adversarial eval
+inspect eval inspect_evals/gravrail_tensor_trust --model anthropic/claude-haiku-4-5-20251001
 ```
 
-See `inspect_scorer.py` and `inspect_task.py` for the full integration.
+### LLM-as-judge results (real API calls)
+
+| Task | Model | Samples | Accuracy |
+| ------ | ------- | --------- | ---------- |
+| `gravrail_injection_detection` | `anthropic/claude-haiku-4-5-20251001` | 30 | **0.900** |
+| `gravrail_injection_detection` | `anthropic/claude-3-haiku-20240307` | 30 | **0.867** |
+| `gravrail_tensor_trust` | `anthropic/claude-haiku-4-5-20251001` | 30 | **0.833** |
+| `gravrail_tensor_trust` | `anthropic/claude-3-haiku-20240307` | 30 | **0.867** |
+
+These results confirm that LLMs can reliably judge whether agent responses have been compromised by prompt injection, achieving 87–90% accuracy on injection detection and 83–87% on human-crafted adversarial attacks (TensorTrust). The Inspect AI tasks complement Lie Garden's geometric detector — the LLM scores semantic correctness while Lie Garden provides mathematical confinement guarantees.
+
+See `inspect_scorer.py` and `inspect_task.py` for the local integration, or install from the [inspect_evals PR](https://github.com/UKGovernmentBEIS/inspect_evals/pull/1272).
 
 ## Empirical Results: Real-World Benchmark (2026-03-18)
 

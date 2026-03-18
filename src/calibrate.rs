@@ -74,8 +74,8 @@ impl Default for CalibrateConfig {
 
 /// Run calibration: spawn proxy + mock, collect metrics, write config.
 pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
-    println!("GravRail Calibrate");
-    println!("══════════════════");
+    println!("Lie Garden Calibrate");
+    println!("════════════════════");
 
     // 1. Start embedded mock upstream
     let mock_port = start_mock_upstream_pub().await?;

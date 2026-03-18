@@ -97,7 +97,7 @@ impl GravRailServer {
 impl GravRailServer {
     // ========== Status ==========
 
-    #[tool(name = "grav_status", description = "Returns GravRail server health status and version")]
+    #[tool(name = "grav_status", description = "Returns Lie Garden server health status and version")]
     fn grav_status(&self) -> String {
         let circuit_count = self.circuits.lock().map(|c| c.len()).unwrap_or(0);
         let agent_count = self.agents.lock().map(|a| a.len()).unwrap_or(0);
@@ -719,7 +719,7 @@ impl ServerHandler for GravRailServer {
                 .build()
         )
         .with_instructions(
-            "GravRail: Deterministic geometric confinement for AI agents. \
+            "Lie Garden: Geometric agent safety via deterministic confinement. \
              Every LLM output is mapped through Lie algebra → exponential map → group element, \
              guaranteeing all state transitions stay on-group. Use grav_circuit_create to define \
              a confinement space, grav_agent_create to spawn agents, and grav_step to process \
