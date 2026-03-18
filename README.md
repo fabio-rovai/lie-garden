@@ -1,4 +1,8 @@
-# GravRail
+<p align="center">
+  <img src="assets/logo.png" width="200" alt="Lie Garden logo" />
+</p>
+
+# Lie Garden
 
 Geometric agent safety: deterministic confinement and tamper-evident anomaly detection for AI agents via Lie groups, gauge theory, and group-native cryptography.
 
@@ -14,7 +18,7 @@ None provide **mathematical guarantees** about agent behaviour, and none produce
 
 ## The Solution
 
-GravRail maps every agent step onto a **Lie group manifold**, creating three geometrically-coupled detection signals:
+Lie Garden maps every agent step onto a **Lie group manifold**, creating three geometrically-coupled detection signals:
 
 ```
 text → embed → map_to_algebra → constrain → exp → multiply
@@ -201,7 +205,7 @@ cargo run --example holonomy_tamper --release
 
 ## Inspect AI Integration
 
-GravRail integrates with [Inspect AI](https://inspect.aisi.org.uk/) (UK AISI evaluation framework) as both a **scorer** and a **monitor**:
+Lie Garden integrates with [Inspect AI](https://inspect.aisi.org.uk/) (UK AISI evaluation framework) as both a **scorer** and a **monitor**:
 
 ```python
 from inspect_ai import eval
