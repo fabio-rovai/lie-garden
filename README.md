@@ -93,6 +93,8 @@ Infrastructure: SQLite state, Merkle hash chain lineage, adaptive feedback.
 
 ## Quick Start
 
+> The CLI binary is called `gravrail` (the original crate name, kept for backwards compatibility).
+
 ```bash
 # Build
 cargo build --release
@@ -305,7 +307,7 @@ The scar persists because group multiplication is non-commutative: the path A→
 
 ## Empirical Results: Proxy Benchmark (2026-03-15)
 
-20 varied Claude responses (math, code, ethics, creative, refusals, philosophy) were run through a live GravProxy instance. The proxy was spawned as a subprocess via `--json-startup --port 0`, routed through SO(3) confinement, and every response measured.
+20 varied Claude responses (math, code, ethics, creative, refusals, philosophy) were run through a live Lie Garden proxy instance. The proxy was spawned as a subprocess via `--json-startup --port 0`, routed through SO(3) confinement, and every response measured.
 
 ### Run summary
 
