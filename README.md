@@ -26,16 +26,16 @@ Lie Garden maps every agent step onto a **Lie group manifold**, creating three g
 text → embed → map_to_algebra → constrain → exp → multiply
          ↓              ↓                           ↓
    directional     holonomy scar            trajectory divergence
-     probe         (non-erasable)             (cumulative)
+     probe         (persistent)               (cumulative)
 ```
 
 ### Signal 1: Directional Probe (per-step)
 
 A learned **harmful direction** in the Lie algebra space — analogous to Representation Engineering (Zou et al., ICLR 2025). Projects each step onto this direction for real-time classification.
 
-### Signal 2: Holonomy Scar (multi-step, non-erasable)
+### Signal 2: Holonomy Scar (multi-step, persistent)
 
-Non-commutative group multiplication means the path A→B→A ≠ A→A→A on the manifold. Even if an adversary returns to normal behaviour, the **geometric scar persists** as forensic evidence. This cannot be erased without access to the group state.
+Non-commutative group multiplication means the path A→B→A ≠ A→A→A on the manifold. Even if an adversary returns to normal behaviour, the **geometric scar persists** longer than in flat-space methods. Empirically, holonomy detection degrades slower than raw embedding detection as recovery length increases (demonstrated on 2 of 3 benchmark datasets).
 
 ### Signal 3: Trajectory Divergence (cumulative)
 
@@ -47,36 +47,37 @@ The exponential map **always** produces an on-group element. Group multiplicatio
 
 ## Headline Results
 
-### Real-world adversarial benchmarks
+### Cross-dataset benchmark (honest evaluation)
 
-Evaluated against two published prompt injection datasets:
+Evaluated against three published prompt injection datasets with sample-level train/test splits (no data leakage), SO(10) holonomy with log-matrix features, and 2000-iteration paired bootstrap confidence intervals.
 
-| Dataset | Examples | Embedding | Best F1 | Description |
-|---------|----------|-----------|---------|-------------|
-| **InjecAgent** (Zhan et al., 2024) | 1,054 attacks | Model2Vec (2024, 512d) | **0.955** | Indirect prompt injection in agent tool responses |
-| **InjecAgent** | 211 test | GloVe-50 (bundled) | **0.86** | Same attacks, GloVe-50 in Rust hot path |
-| **TensorTrust** (Toyer et al., 2024) | 775 attacks | Model2Vec (2024, 512d) | **0.719** | Human-crafted adversarial hijacking from competitive game |
-| **Combined** | 1,829 attacks | Model2Vec (2024, 512d) | **0.854** | Both datasets combined |
+| Dataset | Samples | Probe F1 | Raw Emb F1 | Holonomy F1 | Holo vs Raw | Significant? |
+|---------|---------|----------|------------|-------------|-------------|:------------:|
+| **Neuralchemy** (2024) | 5,333 | **0.931** | 0.888 | 0.899 | +0.011 | no |
+| **TensorTrust** (Toyer et al., 2024) | 1,552 | 0.801 | 0.821 | **0.877** | +0.056 | YES (p=1.000) |
+| **Deepset** (2024) | 662 | **0.862** | 0.825 | 0.829 | +0.004 | no |
 
-### Detection summary
+Holonomy significantly outperforms raw embeddings on TensorTrust (bootstrap CI [+0.019, +0.089]), where human-crafted adversarial attacks benefit most from the non-linear group structure. On datasets with more separable attack/benign distributions (Neuralchemy, Deepset), the simpler directional probe suffices.
+
+### Signal persistence (recovery test)
+
+After attack steps, how fast does detection degrade as benign recovery messages accumulate?
+
+| Dataset | Holonomy slope | Raw slope | Probe slope | Persistence? |
+|---------|---------------|-----------|-------------|:------------:|
+| **TensorTrust** | -0.0094/msg | -0.0106/msg | -0.0078/msg | YES |
+| **Deepset** | -0.0057/msg | -0.0171/msg | -0.0082/msg | YES |
+| **Neuralchemy** | -0.0092/msg | -0.0040/msg | -0.0026/msg | no |
+
+Holonomy retains attack signal through recovery better than raw embeddings on 2 of 3 datasets, consistent with the theoretical prediction that non-commutative group products preserve path information.
+
+### Confinement guarantee
 
 | Metric | Value | Source |
 |--------|-------|--------|
-| **Real-world injection detection** | F1 = 0.955 | InjecAgent, 1,054 indirect prompt injections |
-| **Holonomy scar detection** | 100% | Even single-step attacks leave non-erasable evidence |
-| **Attack+recover detection** | 100% | Adversary returns to normal — scar persists (GL(3): 0.639) |
-| **Subtle attack (forensic)** | Scar up to 2.286 | Per-step evasion defeated by holonomy accumulation |
-| **False positive rate** | 0% | Normal conversations: CLEAN across all groups |
 | **Confinement step latency** | 1.4 – 2.8 ms | SO(3), including exp + multiply + SVD projection |
-
-Combined detector verdicts across 4 scenarios × 3 Lie groups:
-
-| Scenario | SO(5) | SO(8) | GL(3) |
-|----------|-------|-------|-------|
-| Normal conversation | CLEAN | CLEAN | CLEAN |
-| Blatant hijack (step 3) | **BLOCKED** (5 alerts) | **BLOCKED** (5 alerts) | **BLOCKED** (5 alerts) |
-| Subtle manipulation | **SCARRED** (1.302) | **SCARRED** (1.297) | **SCARRED** (2.286) |
-| Attack then recover | **SCARRED** (0.510) | **SCARRED** (0.421) | **SCARRED** (0.639) |
+| **On-manifold invariant** | Exact | SO(n) Frobenius norm = sqrt(n), zero variance over 20+ steps |
+| **Group closure** | Mathematical guarantee | exp always produces on-group element; multiplication stays on-group |
 
 ## Architecture
 
@@ -170,7 +171,7 @@ text → tokenize → embed (GloVe-50) → JL project → algebra coefficients
 | Snowflake Arctic-M | 2024 | 768 | — | — | 9.5ms/text |
 | Jina-v3 | 2024 | 1024 | — | — | 105ms/text |
 
-**Key finding**: Better embeddings improve blatant detection (F1 0.86→0.96) but do NOT solve subtle/adversarial attacks. TensorTrust's human-crafted attacks plateau at F1=0.72 regardless of embedding quality. Holonomy scars provide the fundamentally different signal needed for multi-step detection.
+**Key finding**: Better embeddings improve blatant detection (F1 0.86→0.96) but do NOT solve subtle/adversarial attacks. TensorTrust's human-crafted attacks plateau at F1=0.72 with per-step detection regardless of embedding quality. Holonomy features (log-matrix of SO(10) group product) provide a complementary signal that significantly improves detection on adversarial datasets like TensorTrust (+5.6% F1 over raw embeddings, p=1.000), though the benefit is dataset-dependent.
 
 The embedding layer is a swappable component — the geometric machinery is embedding-agnostic. Since `map_to_algebra` runs once per conversation turn (not per token), even transformer-based embeddings add negligible latency relative to LLM generation time.
 
@@ -183,7 +184,7 @@ The embedding layer is a swappable component — the geometric machinery is embe
 - **Hash-derived generators** for Pedersen commitments — nothing-up-my-sleeve construction
 - **Element-wise algebra multiplication** for DH key exchange — sidesteps non-commutativity of matrix groups
 - **Directional probe in algebra space** — learns harmful direction from labeled data, analogous to Representation Engineering (Zou et al., ICLR 2025)
-- **Three geometrically-coupled signals** — directional, holonomy, trajectory share the same manifold, producing compounding (not just additive) detection power
+- **Three geometrically-coupled signals** — directional, holonomy, trajectory share the same manifold, with holonomy providing complementary detection power on adversarial datasets (demonstrated on TensorTrust, dataset-dependent)
 
 ## Detection Examples
 
@@ -193,7 +194,7 @@ Seven runnable examples in `examples/` demonstrate the detection mechanisms:
 |---------|--------------|------------|
 | `real_world_detection` | InjecAgent indirect injection (Zhan et al., 2024) | F1=0.86, real attacks in tool responses |
 | `directional_detection` | Per-step linear probe in algebra space | F1=0.90 blatant, 60% subtle (dim=50) |
-| `holonomy_tamper` | Non-erasability of geometric scars | 100% scar detection after recovery |
+| `holonomy_tamper` | Persistence of geometric scars | Scar persists after recovery (synthetic demo) |
 | `trajectory_test` | Multi-step state divergence across groups | GL(3) separation = 2.57 Frobenius |
 | `combined_detector` | All three signals fused | BLOCKED/SCARRED across all attack types |
 | `baseline_detection` | Calibrated baseline anomaly scoring | Composite anomaly score per step |
@@ -234,9 +235,11 @@ See `inspect_scorer.py` and `inspect_task.py` for the local integration, or inst
 
 ## Empirical Results: Real-World Benchmark (2026-03-18)
 
+> **Note**: The per-step results below predate the cross-dataset honest evaluation in "Headline Results" above. InjecAgent has only 17 benign samples, making benign classification metrics unreliable. The cross-dataset evaluation (Neuralchemy, TensorTrust, Deepset) with sample-level splits provides more trustworthy numbers.
+
 ### InjecAgent: indirect prompt injection in agent tools
 
-Data source: [InjecAgent](https://github.com/uiuc-kang-lab/InjecAgent) (Zhan et al., ACL 2024 Findings). 1,054 indirect prompt injection attacks embedded in agent tool responses (product reviews, emails, calendar events). Attack types: physical harm, financial harm, data exfiltration.
+Data source: [InjecAgent](https://github.com/uiuc-kang-lab/InjecAgent) (Zhan et al., ACL 2024 Findings). 1,054 indirect prompt injection attacks embedded in agent tool responses (product reviews, emails, calendar events). Attack types: physical harm, financial harm, data exfiltration. **Caveat**: only 17 benign samples — insufficient for reliable F1 estimation.
 
 #### Directional probe (GloVe-50, Rust hot path)
 
@@ -269,7 +272,7 @@ Data source: [TensorTrust](https://github.com/HumanCompatibleAI/tensor-trust-dat
 | 30 | 0.77 | 0.67 | **0.72** |
 | 512 (full) | 0.86 | 0.62 | 0.72 |
 
-TensorTrust's lower F1 (0.72 vs 0.96) demonstrates why holonomy scars matter: per-step directional detection alone cannot catch human-optimised adversarial attacks. The geometric accumulation across multiple turns catches what the linear probe misses.
+TensorTrust's lower F1 (0.72 vs 0.96) reflects the difficulty of human-optimised adversarial attacks vs automated injection. On TensorTrust specifically, the honest cross-dataset evaluation shows holonomy SO(10) achieves F1=0.877, significantly outperforming both raw embeddings (0.821) and probe (0.801) with bootstrap p=1.000. The effect is dataset-dependent — holonomy does not consistently beat probe on all datasets.
 
 ### Combined detector: 4 scenarios × 3 Lie groups
 
@@ -293,17 +296,17 @@ TensorTrust's lower F1 (0.72 vs 0.96) demonstrates why holonomy scars matter: pe
 | Subtle (gradual) | 0.108 | none | 2.286 | SCARRED |
 | Attack+Recover | 0.273 | none | 0.639 | SCARRED |
 
-### Holonomy non-erasability
+### Signal persistence (honest evaluation)
 
-Adversary attacks at steps 5-7, then returns to benign behaviour at steps 8-10. Geometric scar measured as Frobenius distance between benign-only and attack-recovery trajectories:
+After attack steps, benign recovery messages gradually reduce detection signal. The question is whether holonomy retains the signal longer than flat-space methods. Tested on three datasets with sample-level train/test splits:
 
-| Group | Scar after recovery | Detectable? |
-|-------|--------------------:|:-----------:|
-| SO(3) | 0.197 | YES |
-| SO(5) | 0.510 | YES |
-| GL(3) | 0.639 | YES |
+| Dataset | Holonomy degradation | Raw degradation | Holonomy more persistent? |
+|---------|---------------------|-----------------|:-------------------------:|
+| TensorTrust | -0.0094 F1/msg | -0.0106 F1/msg | YES |
+| Deepset | -0.0057 F1/msg | -0.0171 F1/msg | YES |
+| Neuralchemy | -0.0092 F1/msg | -0.0040 F1/msg | no |
 
-The scar persists because group multiplication is non-commutative: the path A→B→A ≠ A→A→A on the manifold. This is an intrinsic geometric property that cannot be erased by any subsequent input.
+The non-commutative group product retains attack information through recovery on 2 of 3 datasets. This is weaker than the original "non-erasable" claim — the signal persists longer but is not permanent, and the effect is dataset-dependent.
 
 ### Ablation: Does the Lie group machinery add detection power?
 
@@ -329,19 +332,17 @@ Raw cosine operates in the full 512d embedding space. The Lie Garden probe compr
 
 The combined detector trades precision for near-perfect recall: at window=5, it catches **99.0%** of InjecAgent attacks vs 72.0% for the sliding window. In security contexts, missing attacks (false negatives) is costlier than false alarms.
 
-#### Attack-and-recover detection (the critical test)
+#### Signal persistence after recovery (the critical test)
 
-Scenario: 5 benign → 3 attack → 5 benign recovery. Does the method still detect the attack after the adversary returns to normal?
+Does the detection signal survive after the adversary returns to normal behaviour? Tested with increasing recovery lengths (0–10 benign messages after attack), measuring F1 degradation rate per recovery message. Sample-level train/test splits, SO(10), 3 real-world datasets.
 
-| Method | InjecAgent | TensorTrust |
-| ------ | ---------- | ----------- |
-| Cumulative drift (flat-space) | NO | YES |
-| Sliding window (flat-space) | NO | NO |
-| **Holonomy scar (Lie group)** | **YES** | **YES** |
+| Dataset | Holonomy degrades slower than raw? | Holonomy degrades slower than probe? |
+| ------ | :--: | :--: |
+| TensorTrust | YES (-0.009 vs -0.011) | no (-0.009 vs -0.008) |
+| Deepset | YES (-0.006 vs -0.017) | YES (-0.006 vs -0.008) |
+| Neuralchemy | no (-0.009 vs -0.004) | no (-0.009 vs -0.003) |
 
-The holonomy scar is the **only signal that reliably detects attack-and-recover patterns across both datasets**. Cumulative drift detects on TensorTrust (where attack/benign embeddings differ more) but fails on InjecAgent (where attacks are embedded in legitimate tool-response language). The sliding window sees only the current window — once benign messages fill it, the attack signal vanishes entirely.
-
-This is the core contribution: non-commutative group multiplication means path A→B→A ≠ A→A→A on the manifold. The geometric scar is permanent and unforgeable.
+The non-commutative group product retains attack information through recovery on 2 of 3 datasets compared to raw embeddings. The effect is strongest on Deepset (3x slower degradation). On Neuralchemy, the simpler methods already have low degradation rates, leaving no room for improvement.
 
 ## Empirical Results: Proxy Benchmark (2026-03-15)
 
@@ -403,7 +404,7 @@ The proxy writes `{"port":N,"token":"..."}` to stdout before `axum::serve` block
 
 ## Open Research Questions
 
-1. **Embedding-geometry interaction** (ANSWERED): Upgrading from GloVe-50 to Model2Vec-512d improves blatant F1 from 0.86→0.96 on InjecAgent, but adversarial attacks (TensorTrust) plateau at F1=0.72 regardless of embedding. The improvement is linear, not superlinear — holonomy provides the fundamentally different signal.
+1. **Embedding-geometry interaction** (PARTIALLY ANSWERED): Upgrading from GloVe-50 to Model2Vec-512d improves blatant F1 from 0.86→0.96 on InjecAgent, but adversarial attacks (TensorTrust) plateau at F1=0.72 with per-step detection. Using higher-dimensional groups (SO(10)+) with log-matrix features lifts TensorTrust to F1=0.877, but the benefit is dataset-dependent — not all datasets show improvement over simpler methods.
 2. **Optimal group selection**: Which Lie group family (SO/SE/GL) and dimension maximises detection power per unit of computational cost?
 3. **Adaptive thresholds**: Can holonomy scar thresholds be auto-calibrated from benign traffic without labeled harmful examples?
 4. **Multi-agent topology**: How do confinement guarantees compose when multiple agents interact through shared group state?
