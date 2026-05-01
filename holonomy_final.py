@@ -541,12 +541,24 @@ def main():
                     ds_h.append(d["text"])
         datasets.append(("Deepset", ds_b, ds_h))
 
+    if not datasets:
+        print()
+        print("ERROR: No datasets loaded. Expected one or more of:")
+        print("  - /tmp/neuralchemy_prompts.jsonl")
+        print("  - /tmp/tensor-trust-data/benchmarks/hijacking-robustness/v1/hijacking_robustness_dataset.jsonl")
+        print("  - /tmp/deepset_prompts.jsonl")
+        print()
+        print("Cannot produce a scorecard without data. Aborting.")
+        raise SystemExit(2)
+
     all_results = {}
+    total_samples = 0
     for dataset_name, b_texts, h_texts in datasets:
         print(f"\n  Encoding {dataset_name} ({len(b_texts)}b/{len(h_texts)}h)...")
         all_vecs = encode(b_texts + h_texts)
         b_vecs = all_vecs[:len(b_texts)]
         h_vecs = all_vecs[len(b_texts):]
+        total_samples += len(b_texts) + len(h_texts)
 
         r = run_experiment(dataset_name, b_vecs, h_vecs)
         all_results[dataset_name] = r
@@ -554,7 +566,6 @@ def main():
     elapsed = time.time() - t0
     print(f"\n  Total time: {elapsed:.1f}s")
 
-    # Summary
     print(f"\n{'='*70}")
     print(f"  FINAL SCORECARD")
     print(f"{'='*70}")
@@ -565,18 +576,25 @@ def main():
               f"{r['lift_vs_raw']:>+7.3f} {'YES' if r['sig_vs_raw'] else 'no':>5} "
               f"{'YES' if r['persistence'] else 'no':>8}")
 
-    print(f"\n  Point 1 (fabricated data):  FIXED — 3 real datasets ({sum(len(b)+len(h) for _,b,h in datasets)} samples)")
+    print(f"\n  Datasets loaded: {len(all_results)} / 3 ({total_samples} samples)")
 
-    all_sig = all(r["sig_vs_raw"] for r in all_results.values())
-    print(f"  Point 2 (multi-step):      {'WIN' if all_sig else 'PARTIAL'} — holonomy beats raw on all datasets" if all_sig
-          else f"  Point 2 (multi-step):      PARTIAL — significant on some datasets")
+    def verdict(predicate_per_result, label_win, label_partial, label_lost):
+        flags = [predicate_per_result(r) for r in all_results.values()]
+        if not flags:
+            return "NO DATA"
+        if all(flags):
+            return label_win
+        if any(flags):
+            return label_partial
+        return label_lost
 
-    all_persist = all(r["persistence"] for r in all_results.values())
-    print(f"  Point 3 (persistence):     {'WIN' if all_persist else 'PARTIAL'} — group degrades slower than raw" if all_persist
-          else f"  Point 3 (persistence):     {'PARTIAL' if any(r['persistence'] for r in all_results.values()) else 'LOST'}")
+    sig_verdict = verdict(lambda r: r["sig_vs_raw"], "WIN", "PARTIAL", "LOST")
+    persist_verdict = verdict(lambda r: r["persistence"], "WIN", "PARTIAL", "LOST")
+    lift_verdict = verdict(lambda r: r["lift_vs_raw"] > 0.01, "WIN", "PARTIAL", "LOST")
 
-    all_lift = all(r["lift_vs_raw"] > 0.01 for r in all_results.values())
-    print(f"  Point 4 (adds value):      {'WIN' if all_lift else 'PARTIAL'} — consistent lift across datasets")
+    print(f"  Point 2 (significance vs raw):  {sig_verdict}")
+    print(f"  Point 3 (persistence vs raw):   {persist_verdict}")
+    print(f"  Point 4 (lift > 0.01 vs raw):   {lift_verdict}")
     print(f"{'='*70}")
 
 
