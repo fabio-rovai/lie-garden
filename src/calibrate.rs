@@ -180,22 +180,32 @@ pub async fn run_calibrate(config: CalibrateConfig) -> Result<()> {
         mean + 3.0 * variance.sqrt()
     }
 
-    let holonomy_threshold = mean_plus_3sigma(&output_holonomies);
-    let input_holonomy_threshold = mean_plus_3sigma(&input_holonomies);
-    let input_norm_threshold = mean_plus_3sigma(&input_norms);
     // max_state_norm is NOT calibrated here: for SO(n) the Frobenius norm of the
     // state matrix is always sqrt(n) (constant), making mean+3σ a meaningless bound.
     // It must be set intentionally via --max-state-norm or left disabled (None).
 
-    // Check we have enough data
-    let min_samples = n / 4;
-    if input_norms.len() < min_samples {
-        anyhow::bail!(
-            "insufficient metric samples: got {}/{} input norm readings (expected at least {}). \
-             Check proxy startup or network errors above.",
-            input_norms.len(), n, min_samples
-        );
-    }
+    // Check we have enough data for every metric, not just input_norms.
+    // A sparse output_holonomies vector would otherwise yield a near-zero
+    // threshold that the proxy treats as "disabled" — silently disarming the
+    // monitor.
+    let min_samples = (n / 4).max(1);
+    let too_few = |label: &str, len: usize| -> Result<(), anyhow::Error> {
+        if len < min_samples {
+            anyhow::bail!(
+                "insufficient metric samples for {}: got {}/{} readings (expected at least {}). \
+                 Check proxy startup or network errors above.",
+                label, len, n, min_samples
+            );
+        }
+        Ok(())
+    };
+    too_few("input_norms", input_norms.len())?;
+    too_few("input_holonomies", input_holonomies.len())?;
+    too_few("output_holonomies", output_holonomies.len())?;
+
+    let holonomy_threshold = mean_plus_3sigma(&output_holonomies);
+    let input_holonomy_threshold = mean_plus_3sigma(&input_holonomies);
+    let input_norm_threshold = mean_plus_3sigma(&input_norms);
 
     // 7. Print summary
     println!();

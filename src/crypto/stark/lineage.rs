@@ -163,15 +163,36 @@ pub fn verify_lineage_proof(proof: &LineageProof) -> bool {
             return false;
         }
 
-        // Verify the queried hash is in the Merkle tree
+        // Verify the queried hash is in the Merkle tree.
+        // For a 1-leaf tree (padded_len == 1) the auth path is legitimately empty
+        // because no sibling exists. For padded_len > 1, an empty auth path is a
+        // soundness failure: a malicious prover could omit it to skip the Merkle
+        // check entirely.
         let idx = proof.query_indices[q];
         let padded_len = (proof.chain_length as f64).log2().ceil().exp2() as usize;
-        if idx < padded_len && !proof.auth_paths[q].is_empty() {
-            let bytes = &expected_hash.as_bytes()[..16.min(expected_hash.len())];
-            let val = u64::from_str_radix(
-                std::str::from_utf8(bytes).unwrap_or("0"), 16
-            ).unwrap_or(0);
-            let fe = FieldElement::new(val as i128);
+        if idx >= padded_len {
+            return false;
+        }
+        let bytes = &expected_hash.as_bytes()[..16.min(expected_hash.len())];
+        let utf8 = match std::str::from_utf8(bytes) {
+            Ok(s) => s,
+            Err(_) => return false,
+        };
+        let val = match u64::from_str_radix(utf8, 16) {
+            Ok(v) => v,
+            Err(_) => return false,
+        };
+        let fe = FieldElement::new(val as i128);
+        if padded_len == 1 {
+            // Single-leaf tree: the leaf is itself the root (after sha256 of value).
+            let leaf_hash = format!("{:x}", Sha256::digest(fe.to_string().as_bytes()));
+            if leaf_hash != proof.chain_root {
+                return false;
+            }
+        } else {
+            if proof.auth_paths[q].is_empty() {
+                return false;
+            }
             if !verify_decommitment(idx, &fe, &proof.auth_paths[q], &proof.chain_root) {
                 return false;
             }

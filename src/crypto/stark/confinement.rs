@@ -327,44 +327,53 @@ pub fn verify_confinement_proof(proof: &ConfinementProof) -> bool {
     }
     channel.send(&proof.fri_last_value.to_string());
 
-    // Verify each query decommitment
+    // Verify each query decommitment.
+    // Empty auth paths or missing FRI vals are soundness failures: a malicious
+    // prover must not be able to skip Merkle membership checks by omitting them.
     for (_qi, query) in proof.queries.iter().enumerate() {
         // 1. Verify trace Merkle membership
-        if !query.trace_auth.is_empty() {
-            let ok = verify_decommitment(
-                query.idx,
-                &query.trace_val,
-                &query.trace_auth,
-                &proof.trace_root,
-            );
-            if !ok {
-                return false;
-            }
+        if query.trace_auth.is_empty() {
+            return false;
+        }
+        let ok = verify_decommitment(
+            query.idx,
+            &query.trace_val,
+            &query.trace_auth,
+            &proof.trace_root,
+        );
+        if !ok {
+            return false;
         }
 
         // 2. Verify CP Merkle membership
-        if !query.cp_auth.is_empty() {
-            let ok = verify_decommitment(
-                query.idx,
-                &query.cp_val,
-                &query.cp_auth,
-                &proof.cp_root,
-            );
-            if !ok {
-                return false;
-            }
+        if query.cp_auth.is_empty() {
+            return false;
+        }
+        let ok = verify_decommitment(
+            query.idx,
+            &query.cp_val,
+            &query.cp_auth,
+            &proof.cp_root,
+        );
+        if !ok {
+            return false;
         }
 
-        // 3. Verify FRI layer Merkle openings
-        // fri_roots[i] commits to the folded evaluations of iteration i
+        // 3. Verify FRI layer Merkle openings: one per fri_root committed
+        if query.fri_auths.len() != proof.fri_roots.len() {
+            return false;
+        }
+        if query.fri_vals.len() != proof.fri_roots.len() {
+            return false;
+        }
         let mut layer_idx = query.idx;
         for (layer_num, fri_auth) in query.fri_auths.iter().enumerate() {
-            if fri_auth.is_empty() || layer_num >= proof.fri_roots.len() {
-                continue;
+            if fri_auth.is_empty() {
+                return false;
             }
             let leaf_num = 1usize << fri_auth.len();
             let folded_idx = layer_idx % leaf_num;
-            let val = query.fri_vals.get(layer_num).copied().unwrap_or(FieldElement::zero());
+            let val = query.fri_vals[layer_num];
             let ok = verify_decommitment(
                 folded_idx,
                 &val,

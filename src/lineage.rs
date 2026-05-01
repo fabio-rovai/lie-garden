@@ -78,7 +78,13 @@ impl LineageLog {
         rows.join("\n") + "\n"
     }
 
-    /// Verify the hash chain is intact — returns true if no tampering detected.
+    /// Verify the hash chain is intact.
+    ///
+    /// Returns `true` only when the session has at least one event, every row
+    /// deserialised cleanly, and every link reproduces the SHA-256 chain. An
+    /// empty session is **not** verified — callers that need "no events" must
+    /// check that condition separately, otherwise a tampered DB that deletes
+    /// every row would falsely look "verified".
     pub fn verify_chain(&self, session_id: &str) -> bool {
         let conn = match self.db.conn() {
             Ok(c) => c,
@@ -93,8 +99,7 @@ impl LineageLog {
             Ok(s) => s,
             Err(_) => return false,
         };
-        let mut prev = "genesis".to_string();
-        match stmt.query_map(rusqlite::params![session_id], |row| {
+        let mapped = match stmt.query_map(rusqlite::params![session_id], |row| {
             let seq: i64 = row.get(0)?;
             let hash: String = row.get(1)?;
             let stored_prev: String = row.get(2)?;
@@ -104,19 +109,34 @@ impl LineageLog {
             let details: String = row.get::<_, Option<String>>(6)?.unwrap_or_default();
             Ok((seq, hash, stored_prev, ts, etype, op, details))
         }) {
-            Ok(mapped) => mapped
-                .filter_map(|r| r.ok())
-                .all(|(seq, hash, stored_prev, ts, etype, op, details)| {
-                    if stored_prev != prev {
-                        return false;
-                    }
-                    let payload = format!("{}:{}:{}:{}:{}:{}:{}", prev, session_id, seq, ts, etype, op, details);
-                    let expected = format!("{:x}", Sha256::digest(payload.as_bytes()));
-                    let ok = hash == expected;
-                    prev = hash;
-                    ok
-                }),
-            Err(_) => false,
+            Ok(m) => m,
+            Err(_) => return false,
+        };
+
+        let mut prev = "genesis".to_string();
+        let mut count: usize = 0;
+        for row in mapped {
+            let (seq, hash, stored_prev, ts, etype, op, details) = match row {
+                Ok(t) => t,
+                // A row that fails to deserialise indicates corruption; do not
+                // silently skip it.
+                Err(_) => return false,
+            };
+            if stored_prev != prev {
+                return false;
+            }
+            let payload = format!(
+                "{}:{}:{}:{}:{}:{}:{}",
+                prev, session_id, seq, ts, etype, op, details
+            );
+            let expected = format!("{:x}", Sha256::digest(payload.as_bytes()));
+            if hash != expected {
+                return false;
+            }
+            prev = hash;
+            count += 1;
         }
+
+        count > 0
     }
 }
