@@ -1,0 +1,65 @@
+Lie Garden — Geometric prompt-injection detection
+Copyright 2025 Kampakis & Co Ltd (The Tesseract Academy)
+
+This product includes data and code from the following third-party
+research datasets and software, used for evaluation only. Each retains
+its own license; please consult the linked sources before redistribution.
+
+================================================================================
+
+TensorTrust hijacking-robustness dataset
+  Source: https://github.com/HumanCompatibleAI/tensor-trust-data
+  Paper:  Toyer et al., "Tensor Trust: Interpretable Prompt Injection
+          Attacks from an Online Game", ICLR 2024.
+          https://arxiv.org/abs/2311.01011
+  Pinned: commit 747a75e096761ebc01bd3970158827326b4add23
+  License: see upstream LICENSE / paper for terms.
+
+  Files used:
+    benchmarks/hijacking-robustness/v1/hijacking_robustness_dataset.jsonl
+
+================================================================================
+
+InjecAgent
+  Source: https://github.com/uiuc-kang-lab/InjecAgent
+  Paper:  Zhan et al., "InjecAgent: Benchmarking Indirect Prompt Injections
+          in Tool-Integrated Large Language Model Agents",
+          Findings of the ACL 2024.
+          https://arxiv.org/abs/2403.02691
+  Pinned: commit f19c9f2c79a41046eb13c03c51a24c567a8ffa07
+  License: MIT.
+
+  Files used:
+    data/user_cases.jsonl
+    data/attacker_cases_dh.jsonl
+    data/attacker_cases_ds.jsonl
+    data/test_cases_dh_base.json
+    data/test_cases_ds_base.json
+
+================================================================================
+
+deepset/prompt-injections
+  Source: https://huggingface.co/datasets/deepset/prompt-injections
+  Pinned: HF revision 4f61ecb038e9c3fb77e21034b22511b523772cdd
+  License: CC-BY-4.0 (per dataset card).
+
+  Publisher train/test split is preserved in the bench v3 evaluation;
+  the bench does NOT mix the two splits.
+
+================================================================================
+
+neuralchemy/Prompt-injection-dataset (core split)
+  Source: https://huggingface.co/datasets/neuralchemy/Prompt-injection-dataset
+  Pinned: HF revision 7d70432dfcf47a821612cbf9d34e9d9e3ad20e75
+  License: Apache-2.0.
+
+  The dataset ships group-aware train/test splits (see `group_id`
+  column). The bench v3 evaluation respects that split — paraphrases
+  with the same group_id are never in both train and test.
+
+================================================================================
+
+Embedding model: minishlab/potion-base-32M
+  Source: https://huggingface.co/minishlab/potion-base-32M
+  Pinned: HF revision 1e5a03f8eeb2c98b928fbbd846f22f816360919f
+  License: see upstream model card.

@@ -1,0 +1,3195 @@
+{
+  "config": {
+    "n_seeds": 5,
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "so_n": 25,
+    "conv_len": 4,
+    "n_per_type": 500,
+    "test_size": 0.4,
+    "datasets": [
+      "tensortrust",
+      "deepset",
+      "neuralchemy"
+    ]
+  },
+  "runs": [
+    {
+      "name": "tensortrust",
+      "publisher_split": false,
+      "raw_count": {
+        "benign": 424,
+        "harmful": 492
+      },
+      "notes": "Benign = access_code (legitimate user msg). Harmful = attack (adversarial user msg). Both occupy the user role; pre_prompt (system role) is deliberately NOT used.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 1,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 254,
+        "train_harmful": 295,
+        "test_benign": 170,
+        "test_harmful": 197,
+        "probe_train_benign": 63,
+        "probe_train_harmful": 73
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.8631090487238979,
+          "precision": 0.8051948051948052,
+          "recall": 0.93,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.801980198019802,
+          "precision": 0.7941176470588235,
+          "recall": 0.81,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8410757946210269,
+          "precision": 0.8229665071770335,
+          "recall": 0.86,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.7878787878787878,
+          "precision": 0.7959183673469388,
+          "recall": 0.78,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8480392156862745,
+          "precision": 0.8317307692307693,
+          "recall": 0.865,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.061128850704095905,
+          "ci_lo": -0.10187038142603351,
+          "ci_hi": -0.021938693549198553,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.03909559660122486,
+          "ci_lo": -0.06977782348268596,
+          "ci_hi": -0.010543523973484558,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.014101410141014181,
+          "ci_lo": -0.022117933713585936,
+          "ci_hi": 0.05317025927929253,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.015069833037623437,
+          "ci_lo": -0.04908395564115116,
+          "ci_hi": 0.020427178964171476,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": 0.00696342106524761,
+          "ci_lo": -0.01996833819287145,
+          "ci_hi": 0.0364783844869363,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.06016042780748665,
+          "ci_lo": 0.02580403275566005,
+          "ci_hi": 0.09827858227142784,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.061128850704095905,
+          "p_two_sided": 0.004997501249375313,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.03909559660122486,
+          "p_two_sided": 0.009495252373813094,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.014101410141014181,
+          "p_two_sided": 0.4672663668165917,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.015069833037623437,
+          "p_two_sided": 0.40879560219890054,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.00696342106524761,
+          "p_two_sided": 0.6771614192903548,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.06016042780748665,
+          "p_two_sided": 0.0009995002498750624,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.48484848484848486,
+        "probe_f1": 0.43043478260869567
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 1
+    },
+    {
+      "name": "tensortrust",
+      "publisher_split": false,
+      "raw_count": {
+        "benign": 424,
+        "harmful": 492
+      },
+      "notes": "Benign = access_code (legitimate user msg). Harmful = attack (adversarial user msg). Both occupy the user role; pre_prompt (system role) is deliberately NOT used.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 2,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 254,
+        "train_harmful": 295,
+        "test_benign": 170,
+        "test_harmful": 197,
+        "probe_train_benign": 63,
+        "probe_train_harmful": 73
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.8591549295774648,
+          "precision": 0.8097345132743363,
+          "recall": 0.915,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8461538461538461,
+          "precision": 0.7727272727272727,
+          "recall": 0.935,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8280542986425339,
+          "precision": 0.756198347107438,
+          "recall": 0.915,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.8295964125560538,
+          "precision": 0.7520325203252033,
+          "recall": 0.925,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8662131519274376,
+          "precision": 0.7925311203319502,
+          "recall": 0.955,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.013001083423618609,
+          "ci_lo": -0.044512725312808005,
+          "ci_hi": 0.016348530004519073,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": 0.018099547511312264,
+          "ci_lo": -0.006196085597320886,
+          "ci_hi": 0.04554115285134185,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.01655743359779238,
+          "ci_lo": -0.01043146917215641,
+          "ci_hi": 0.04557727386551508,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": 0.007058222349972887,
+          "ci_lo": -0.0197218171248099,
+          "ci_hi": 0.03350473625511865,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": 0.03815885328490376,
+          "ci_lo": 0.015073100879063259,
+          "ci_hi": 0.06573744047428863,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.03661673937138388,
+          "ci_lo": 0.009793865988245413,
+          "ci_hi": 0.06671769242263782,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.013001083423618609,
+          "p_two_sided": 0.42328835582208896,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.018099547511312264,
+          "p_two_sided": 0.18590704647676162,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.01655743359779238,
+          "p_two_sided": 0.2608695652173913,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.007058222349972887,
+          "p_two_sided": 0.6266866566716641,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.03815885328490376,
+          "p_two_sided": 0.0024987506246876563,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.03661673937138388,
+          "p_two_sided": 0.010494752623688156,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.493573264781491,
+        "probe_f1": 0.8051948051948052
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 2
+    },
+    {
+      "name": "tensortrust",
+      "publisher_split": false,
+      "raw_count": {
+        "benign": 424,
+        "harmful": 492
+      },
+      "notes": "Benign = access_code (legitimate user msg). Harmful = attack (adversarial user msg). Both occupy the user role; pre_prompt (system role) is deliberately NOT used.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 3,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 254,
+        "train_harmful": 295,
+        "test_benign": 170,
+        "test_harmful": 197,
+        "probe_train_benign": 63,
+        "probe_train_harmful": 73
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.9393939393939394,
+          "precision": 0.9489795918367347,
+          "recall": 0.93,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8167770419426048,
+          "precision": 0.7312252964426877,
+          "recall": 0.925,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8458149779735683,
+          "precision": 0.7559055118110236,
+          "recall": 0.96,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.7930283224400871,
+          "precision": 0.7027027027027027,
+          "recall": 0.91,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8597285067873304,
+          "precision": 0.7851239669421488,
+          "recall": 0.95,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.12261689745133464,
+          "ci_lo": -0.1653786969218706,
+          "ci_hi": -0.08495224713332072,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.029037936030963496,
+          "ci_lo": -0.057091370999558376,
+          "ci_hi": -0.0023081896921995355,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.023748719502517668,
+          "ci_lo": -0.005332371924483345,
+          "ci_hi": 0.05432105211414567,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.07966543260660908,
+          "ci_lo": -0.11497867498812708,
+          "ci_hi": -0.04370084468922059,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": 0.013913528813762066,
+          "ci_lo": -0.008980570176866029,
+          "ci_hi": 0.03960522380166004,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.06670018434724323,
+          "ci_lo": 0.03773863724338339,
+          "ci_hi": 0.09920713368690084,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.12261689745133464,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.029037936030963496,
+          "p_two_sided": 0.04247876061969016,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.023748719502517668,
+          "p_two_sided": 0.11644177911044477,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.07966543260660908,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.013913528813762066,
+          "p_two_sided": 0.2748625687156422,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.06670018434724323,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.5351473922902494,
+        "probe_f1": 0.5063291139240507
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 3
+    },
+    {
+      "name": "tensortrust",
+      "publisher_split": false,
+      "raw_count": {
+        "benign": 424,
+        "harmful": 492
+      },
+      "notes": "Benign = access_code (legitimate user msg). Harmful = attack (adversarial user msg). Both occupy the user role; pre_prompt (system role) is deliberately NOT used.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 4,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 254,
+        "train_harmful": 295,
+        "test_benign": 170,
+        "test_harmful": 197,
+        "probe_train_benign": 63,
+        "probe_train_harmful": 73
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.9388753056234719,
+          "precision": 0.9186602870813397,
+          "recall": 0.96,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.815668202764977,
+          "precision": 0.7564102564102564,
+          "recall": 0.885,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8577878103837472,
+          "precision": 0.7818930041152263,
+          "recall": 0.95,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.7962962962962963,
+          "precision": 0.7413793103448276,
+          "recall": 0.86,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8564705882352941,
+          "precision": 0.8088888888888889,
+          "recall": 0.91,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.1232071028584949,
+          "ci_lo": -0.1630363618435966,
+          "ci_hi": -0.08488201768104842,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.042119607618770205,
+          "ci_lo": -0.07513871743394411,
+          "ci_hi": -0.013985296646986405,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.0193719064686807,
+          "ci_lo": -0.014556487774444741,
+          "ci_hi": 0.055089224474521026,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.08240471738817778,
+          "ci_lo": -0.11905427216682149,
+          "ci_hi": -0.04964034534515302,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.00131722214845309,
+          "ci_lo": -0.031021293750641846,
+          "ci_hi": 0.026875162363955183,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.060174291938997815,
+          "ci_lo": 0.0288793331798281,
+          "ci_hi": 0.09589282849400951,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.1232071028584949,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.042119607618770205,
+          "p_two_sided": 0.0069965017491254375,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.0193719064686807,
+          "p_two_sided": 0.29685157421289354,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.08240471738817778,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.00131722214845309,
+          "p_two_sided": 0.8895552223888056,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.060174291938997815,
+          "p_two_sided": 0.0009995002498750624,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.414985590778098,
+        "probe_f1": 0.6047904191616766
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 4
+    },
+    {
+      "name": "tensortrust",
+      "publisher_split": false,
+      "raw_count": {
+        "benign": 424,
+        "harmful": 492
+      },
+      "notes": "Benign = access_code (legitimate user msg). Harmful = attack (adversarial user msg). Both occupy the user role; pre_prompt (system role) is deliberately NOT used.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 5,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 254,
+        "train_harmful": 295,
+        "test_benign": 170,
+        "test_harmful": 197,
+        "probe_train_benign": 63,
+        "probe_train_harmful": 73
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.9323671497584541,
+          "precision": 0.9018691588785047,
+          "recall": 0.965,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8333333333333334,
+          "precision": 0.7581967213114754,
+          "recall": 0.925,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8603603603603603,
+          "precision": 0.7827868852459017,
+          "recall": 0.955,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.8116591928251121,
+          "precision": 0.7357723577235772,
+          "recall": 0.905,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8663594470046083,
+          "precision": 0.8034188034188035,
+          "recall": 0.94,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.09903381642512077,
+          "ci_lo": -0.1342769063411647,
+          "ci_hi": -0.06567921022582103,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.027027027027026973,
+          "ci_lo": -0.05153649469115627,
+          "ci_hi": -0.007216131205766067,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.02167414050822125,
+          "ci_lo": -0.007042786562227767,
+          "ci_hi": 0.05593769802119198,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.06600770275384582,
+          "ci_lo": -0.09714770570772488,
+          "ci_hi": -0.03531122586349274,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": 0.005999086644247975,
+          "ci_lo": -0.016518704675769907,
+          "ci_hi": 0.027971645442528996,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.0547002541794962,
+          "ci_lo": 0.023794327076572103,
+          "ci_hi": 0.08849507460931004,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.09903381642512077,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.027027027027026973,
+          "p_two_sided": 0.02048975512243878,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.02167414050822125,
+          "p_two_sided": 0.18990504747626186,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.06600770275384582,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.005999086644247975,
+          "p_two_sided": 0.6131934032983508,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.0547002541794962,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.4797979797979798,
+        "probe_f1": 0.05141388174807198
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 5
+    },
+    {
+      "name": "deepset",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 343,
+          "harmful": 203
+        },
+        "test": {
+          "benign": 56,
+          "harmful": 60
+        }
+      },
+      "notes": "Publisher train/test split is preserved. label=0 -> benign, label=1 -> injection (per dataset card).",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 1,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 343,
+        "train_harmful": 203,
+        "test_benign": 56,
+        "test_harmful": 60,
+        "probe_train_benign": 85,
+        "probe_train_harmful": 50
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7635327635327636,
+          "precision": 0.8874172185430463,
+          "recall": 0.67,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.7206477732793523,
+          "precision": 0.6054421768707483,
+          "recall": 0.89,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.7829614604462475,
+          "precision": 0.658703071672355,
+          "recall": 0.965,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.7383966244725738,
+          "precision": 0.6386861313868614,
+          "recall": 0.875,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.7463917525773196,
+          "precision": 0.6350877192982456,
+          "recall": 0.905,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.042884990253411304,
+          "ci_lo": -0.10034299342561316,
+          "ci_hi": 0.016440599070493334,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.062313687166895226,
+          "ci_lo": -0.09377522425321382,
+          "ci_hi": -0.03293446181262007,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": -0.01774885119322156,
+          "ci_lo": -0.05028666217181814,
+          "ci_hi": 0.014380825857745649,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.017141010955443958,
+          "ci_lo": -0.06942680655738252,
+          "ci_hi": 0.04113734380804542,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.03656970786892788,
+          "ci_lo": -0.06771156654180306,
+          "ci_hi": -0.008613638234388241,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.007995128104745786,
+          "ci_lo": -0.024204566862644515,
+          "ci_hi": 0.040370855148970805,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.042884990253411304,
+          "p_two_sided": 0.1409295352323838,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.062313687166895226,
+          "p_two_sided": 0.0004997501249375312,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.01774885119322156,
+          "p_two_sided": 0.31434282858570717,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.017141010955443958,
+          "p_two_sided": 0.5282358820589705,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.03656970786892788,
+          "p_two_sided": 0.011494252873563218,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.007995128104745786,
+          "p_two_sided": 0.6221889055472264,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.4556213017751479,
+        "probe_f1": 0.6971428571428572
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 1
+    },
+    {
+      "name": "deepset",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 343,
+          "harmful": 203
+        },
+        "test": {
+          "benign": 56,
+          "harmful": 60
+        }
+      },
+      "notes": "Publisher train/test split is preserved. label=0 -> benign, label=1 -> injection (per dataset card).",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 2,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 343,
+        "train_harmful": 203,
+        "test_benign": 56,
+        "test_harmful": 60,
+        "probe_train_benign": 85,
+        "probe_train_harmful": 50
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7028423772609819,
+          "precision": 0.7272727272727273,
+          "recall": 0.68,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.6933333333333334,
+          "precision": 0.624,
+          "recall": 0.78,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.7323340471092077,
+          "precision": 0.6404494382022472,
+          "recall": 0.855,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.6442953020134228,
+          "precision": 0.582995951417004,
+          "recall": 0.72,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.7217391304347827,
+          "precision": 0.6384615384615384,
+          "recall": 0.83,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.009509043927648508,
+          "ci_lo": -0.07167826424949508,
+          "ci_hi": 0.04938485114756578,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.03900071377587433,
+          "ci_lo": -0.07435703738588625,
+          "ci_hi": -0.009285258935325218,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.04903803131991058,
+          "ci_lo": 0.012170985290678027,
+          "ci_hi": 0.0878929959437305,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": 0.018896753173800795,
+          "ci_lo": -0.03972697940968921,
+          "ci_hi": 0.07415600103054808,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.010594916674425026,
+          "ci_lo": -0.04270868631099847,
+          "ci_hi": 0.020128228147807188,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.07744382842135988,
+          "ci_lo": 0.041553517464477926,
+          "ci_hi": 0.12101078715731882,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.009509043927648508,
+          "p_two_sided": 0.7606196901549226,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.03900071377587433,
+          "p_two_sided": 0.01649175412293853,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.04903803131991058,
+          "p_two_sided": 0.015992003998001,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.018896753173800795,
+          "p_two_sided": 0.5077461269365318,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.010594916674425026,
+          "p_two_sided": 0.5017491254372813,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.07744382842135988,
+          "p_two_sided": 0.0009995002498750624,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.5951219512195122,
+        "probe_f1": 0.38144329896907214
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 2
+    },
+    {
+      "name": "deepset",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 343,
+          "harmful": 203
+        },
+        "test": {
+          "benign": 56,
+          "harmful": 60
+        }
+      },
+      "notes": "Publisher train/test split is preserved. label=0 -> benign, label=1 -> injection (per dataset card).",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 3,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 343,
+        "train_harmful": 203,
+        "test_benign": 56,
+        "test_harmful": 60,
+        "probe_train_benign": 85,
+        "probe_train_harmful": 50
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7323943661971831,
+          "precision": 0.8387096774193549,
+          "recall": 0.65,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.6924731182795699,
+          "precision": 0.6075471698113207,
+          "recall": 0.805,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.7276341948310139,
+          "precision": 0.6039603960396039,
+          "recall": 0.915,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.6828282828282828,
+          "precision": 0.5728813559322034,
+          "recall": 0.845,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.70509977827051,
+          "precision": 0.6334661354581673,
+          "recall": 0.795,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.0399212479176132,
+          "ci_lo": -0.09656519782923616,
+          "ci_hi": 0.018986466574618274,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.03516107655144396,
+          "ci_lo": -0.07322559531954828,
+          "ci_hi": -0.0016199957871137689,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.009644835451287137,
+          "ci_lo": -0.02810002611170409,
+          "ci_hi": 0.045541359340763456,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.027294587926673164,
+          "ci_lo": -0.08170422770801612,
+          "ci_hi": 0.02748961697009264,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.022534416560503923,
+          "ci_lo": -0.06011032296754751,
+          "ci_hi": 0.009288100651778585,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.022271495442227174,
+          "ci_lo": -0.016193279140485548,
+          "ci_hi": 0.05652713380756945,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.0399212479176132,
+          "p_two_sided": 0.1584207896051974,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.03516107655144396,
+          "p_two_sided": 0.047476261869065464,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.009644835451287137,
+          "p_two_sided": 0.6071964017991005,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.027294587926673164,
+          "p_two_sided": 0.33883058470764615,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.022534416560503923,
+          "p_two_sided": 0.18840579710144928,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.022271495442227174,
+          "p_two_sided": 0.23138430784607697,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.5058139534883721,
+        "probe_f1": 0.5861182519280206
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 3
+    },
+    {
+      "name": "deepset",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 343,
+          "harmful": 203
+        },
+        "test": {
+          "benign": 56,
+          "harmful": 60
+        }
+      },
+      "notes": "Publisher train/test split is preserved. label=0 -> benign, label=1 -> injection (per dataset card).",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 4,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 343,
+        "train_harmful": 203,
+        "test_benign": 56,
+        "test_harmful": 60,
+        "probe_train_benign": 85,
+        "probe_train_harmful": 50
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7113702623906706,
+          "precision": 0.8531468531468531,
+          "recall": 0.61,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.6905263157894737,
+          "precision": 0.5963636363636363,
+          "recall": 0.82,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.72265625,
+          "precision": 0.592948717948718,
+          "recall": 0.925,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.717391304347826,
+          "precision": 0.6346153846153846,
+          "recall": 0.825,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.7164835164835165,
+          "precision": 0.6392156862745098,
+          "recall": 0.815,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.020843946601196928,
+          "ci_lo": -0.08405971415241115,
+          "ci_hi": 0.04453316687519462,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.032129934210526345,
+          "ci_lo": -0.06720097205709583,
+          "ci_hi": -0.0011464500593905667,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": -0.0268649885583524,
+          "ci_lo": -0.06117180050183357,
+          "ci_hi": 0.009364813015089122,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": 0.005113254092845909,
+          "ci_lo": -0.0572532796611693,
+          "ci_hi": 0.06891815174850276,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.006172733516483508,
+          "ci_lo": -0.04394265798047797,
+          "ci_hi": 0.030477376754163177,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": -0.0009077878643095616,
+          "ci_lo": -0.03672684959564422,
+          "ci_hi": 0.03511585534364856,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.020843946601196928,
+          "p_two_sided": 0.5137431284357821,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.032129934210526345,
+          "p_two_sided": 0.062468765617191405,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.0268649885583524,
+          "p_two_sided": 0.13393303348325838,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.005113254092845909,
+          "p_two_sided": 0.8680659670164917,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.006172733516483508,
+          "p_two_sided": 0.7261369315342329,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.0009077878643095616,
+          "p_two_sided": 0.9825087456271864,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.4897959183673469,
+        "probe_f1": 0.5257985257985258
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 4
+    },
+    {
+      "name": "deepset",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 343,
+          "harmful": 203
+        },
+        "test": {
+          "benign": 56,
+          "harmful": 60
+        }
+      },
+      "notes": "Publisher train/test split is preserved. label=0 -> benign, label=1 -> injection (per dataset card).",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 5,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 343,
+        "train_harmful": 203,
+        "test_benign": 56,
+        "test_harmful": 60,
+        "probe_train_benign": 85,
+        "probe_train_harmful": 50
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7479674796747967,
+          "precision": 0.8165680473372781,
+          "recall": 0.69,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.692,
+          "precision": 0.5766666666666667,
+          "recall": 0.865,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.7186311787072244,
+          "precision": 0.5797546012269938,
+          "recall": 0.945,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.6973180076628352,
+          "precision": 0.5652173913043478,
+          "recall": 0.91,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.7112970711297071,
+          "precision": 0.6115107913669064,
+          "recall": 0.85,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.05596747967479676,
+          "ci_lo": -0.1152971267707116,
+          "ci_hi": 0.0028676628625352433,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.026631178707224423,
+          "ci_lo": -0.0576824733314733,
+          "ci_hi": -5.966250774956194e-06,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": -0.0053180076628353,
+          "ci_lo": -0.03682739138967727,
+          "ci_hi": 0.022897337575446704,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.03667040854508963,
+          "ci_lo": -0.09235939875134791,
+          "ci_hi": 0.018287161959994136,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.00733410757751729,
+          "ci_lo": -0.039141869047125424,
+          "ci_hi": 0.02163771383956321,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.013979063466871833,
+          "ci_lo": -0.020431443456495446,
+          "ci_hi": 0.04716543337150335,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.05596747967479676,
+          "p_two_sided": 0.06096951524237881,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.026631178707224423,
+          "p_two_sided": 0.059470264867566215,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.0053180076628353,
+          "p_two_sided": 0.7161419290354822,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.03667040854508963,
+          "p_two_sided": 0.18290854572713644,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.00733410757751729,
+          "p_two_sided": 0.6466766616691654,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.013979063466871833,
+          "p_two_sided": 0.3938030984507746,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.5882352941176471,
+        "probe_f1": 0.5416666666666666
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 5
+    },
+    {
+      "name": "neuralchemy",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 1741,
+          "harmful": 2650
+        },
+        "test": {
+          "benign": 390,
+          "harmful": 552
+        }
+      },
+      "notes": "Publisher train/test split preserved. group_id is used to deduplicate paraphrases within each split, so paraphrases of the same row never appear twice.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 1,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 1741,
+        "train_harmful": 2650,
+        "test_benign": 390,
+        "test_harmful": 552,
+        "probe_train_benign": 435,
+        "probe_train_harmful": 662
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.884318766066838,
+          "precision": 0.91005291005291,
+          "recall": 0.86,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.841025641025641,
+          "precision": 0.8631578947368421,
+          "recall": 0.82,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8522167487684729,
+          "precision": 0.8398058252427184,
+          "recall": 0.865,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.8413098236775819,
+          "precision": 0.8477157360406091,
+          "recall": 0.835,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8477157360406091,
+          "precision": 0.8608247422680413,
+          "recall": 0.835,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.04329312504119698,
+          "ci_lo": -0.08181140910582572,
+          "ci_hi": -0.008738149530706455,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.01119110774283183,
+          "ci_lo": -0.03688090811126332,
+          "ci_hi": 0.015869215990169497,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": -0.00028418265194085635,
+          "ci_lo": -0.026565978620312247,
+          "ci_hi": 0.028572750824535004,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.03660303002622889,
+          "ci_lo": -0.07456207719989445,
+          "ci_hi": -0.0037072269217043705,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.00450101272786374,
+          "ci_lo": -0.030857315260558366,
+          "ci_hi": 0.020809134788655113,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.006405912363027233,
+          "ci_lo": -0.016760615072207934,
+          "ci_hi": 0.0329264464386676,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.04329312504119698,
+          "p_two_sided": 0.01999000499750125,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.01119110774283183,
+          "p_two_sided": 0.3828085957021489,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.00028418265194085635,
+          "p_two_sided": 1.0,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.03660303002622889,
+          "p_two_sided": 0.0399800099950025,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.00450101272786374,
+          "p_two_sided": 0.7056471764117941,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.006405912363027233,
+          "p_two_sided": 0.6451774112943528,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.4639175257731959,
+        "probe_f1": 0.542713567839196
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 1
+    },
+    {
+      "name": "neuralchemy",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 1741,
+          "harmful": 2650
+        },
+        "test": {
+          "benign": 390,
+          "harmful": 552
+        }
+      },
+      "notes": "Publisher train/test split preserved. group_id is used to deduplicate paraphrases within each split, so paraphrases of the same row never appear twice.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 2,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 1741,
+        "train_harmful": 2650,
+        "test_benign": 390,
+        "test_harmful": 552,
+        "probe_train_benign": 435,
+        "probe_train_harmful": 662
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.9135802469135802,
+          "precision": 0.9024390243902439,
+          "recall": 0.925,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8729016786570744,
+          "precision": 0.8387096774193549,
+          "recall": 0.91,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8878281622911695,
+          "precision": 0.8493150684931506,
+          "recall": 0.93,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.8752941176470588,
+          "precision": 0.8266666666666667,
+          "recall": 0.93,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8720379146919431,
+          "precision": 0.8288288288288288,
+          "recall": 0.92,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.04067856825650584,
+          "ci_lo": -0.07204043691631752,
+          "ci_hi": -0.013212937211851563,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.0149264836340951,
+          "ci_lo": -0.03447579136356316,
+          "ci_hi": 0.0005876730768672063,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": -0.0023924389899844245,
+          "ci_lo": -0.026478085281151947,
+          "ci_hi": 0.019728712026687568,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.04154233222163706,
+          "ci_lo": -0.07241609113430121,
+          "ci_hi": -0.015452702099079042,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.015790247599226315,
+          "ci_lo": -0.03755189914477714,
+          "ci_hi": 0.0015387149112816247,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": -0.003256202955115639,
+          "ci_lo": -0.026758303872011554,
+          "ci_hi": 0.019158899637137898,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.04067856825650584,
+          "p_two_sided": 0.00399800099950025,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.0149264836340951,
+          "p_two_sided": 0.11094452773613193,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.0023924389899844245,
+          "p_two_sided": 0.8680659670164917,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.04154233222163706,
+          "p_two_sided": 0.0034982508745627187,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.015790247599226315,
+          "p_two_sided": 0.12643678160919541,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.003256202955115639,
+          "p_two_sided": 0.8255872063968016,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.5644768856447688,
+        "probe_f1": 0.8521303258145363
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 2
+    },
+    {
+      "name": "neuralchemy",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 1741,
+          "harmful": 2650
+        },
+        "test": {
+          "benign": 390,
+          "harmful": 552
+        }
+      },
+      "notes": "Publisher train/test split preserved. group_id is used to deduplicate paraphrases within each split, so paraphrases of the same row never appear twice.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 3,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 1741,
+        "train_harmful": 2650,
+        "test_benign": 390,
+        "test_harmful": 552,
+        "probe_train_benign": 435,
+        "probe_train_harmful": 662
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.9135802469135802,
+          "precision": 0.9024390243902439,
+          "recall": 0.925,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8926829268292683,
+          "precision": 0.8714285714285714,
+          "recall": 0.915,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.9041769041769042,
+          "precision": 0.8888888888888888,
+          "recall": 0.92,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.8856447688564477,
+          "precision": 0.8625592417061612,
+          "recall": 0.91,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8953771289537713,
+          "precision": 0.8720379146919431,
+          "recall": 0.92,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.020897320084311888,
+          "ci_lo": -0.05258019777694485,
+          "ci_hi": 0.006580780115245995,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.011493977347635909,
+          "ci_lo": -0.03208290652649789,
+          "ci_hi": 0.0071683357914781864,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.007038157972820591,
+          "ci_lo": -0.016999928041355278,
+          "ci_hi": 0.03155284707378951,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.01820311795980889,
+          "ci_lo": -0.04963307051547651,
+          "ci_hi": 0.009282690930740647,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.00879977522313291,
+          "ci_lo": -0.029826316063040367,
+          "ci_hi": 0.010253283835567633,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.009732360097323589,
+          "ci_lo": -0.013405118208253757,
+          "ci_hi": 0.034616176477527405,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.020897320084311888,
+          "p_two_sided": 0.17491254372813594,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.011493977347635909,
+          "p_two_sided": 0.28835582208895555,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.007038157972820591,
+          "p_two_sided": 0.6186906546726637,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.01820311795980889,
+          "p_two_sided": 0.23088455772113944,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.00879977522313291,
+          "p_two_sided": 0.4312843578210895,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.009732360097323589,
+          "p_two_sided": 0.4547726136931534,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.48931116389548696,
+        "probe_f1": 0.8113207547169812
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 3
+    },
+    {
+      "name": "neuralchemy",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 1741,
+          "harmful": 2650
+        },
+        "test": {
+          "benign": 390,
+          "harmful": 552
+        }
+      },
+      "notes": "Publisher train/test split preserved. group_id is used to deduplicate paraphrases within each split, so paraphrases of the same row never appear twice.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 4,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 1741,
+        "train_harmful": 2650,
+        "test_benign": 390,
+        "test_harmful": 552,
+        "probe_train_benign": 435,
+        "probe_train_harmful": 662
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.8805970149253731,
+          "precision": 0.8762376237623762,
+          "recall": 0.885,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8663366336633663,
+          "precision": 0.8578431372549019,
+          "recall": 0.875,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8883495145631068,
+          "precision": 0.8632075471698113,
+          "recall": 0.915,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.85995085995086,
+          "precision": 0.8454106280193237,
+          "recall": 0.875,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8805970149253731,
+          "precision": 0.8762376237623762,
+          "recall": 0.885,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.014260381262006794,
+          "ci_lo": -0.044652354688944684,
+          "ci_hi": 0.014053118017739199,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.022012880899740517,
+          "ci_lo": -0.04685365483313789,
+          "ci_hi": 0.0012810434723730477,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.006385773712506371,
+          "ci_lo": -0.019233071872350287,
+          "ci_hi": 0.03192131166684781,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": 0.0,
+          "ci_lo": -0.02661481221564174,
+          "ci_hi": 0.024217511397058557,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.007752499637733723,
+          "ci_lo": -0.032497820622376425,
+          "ci_hi": 0.016064716145289745,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.020646154974513165,
+          "ci_lo": -0.003958842046317611,
+          "ci_hi": 0.047105154973930294,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.014260381262006794,
+          "p_two_sided": 0.3918040979510245,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.022012880899740517,
+          "p_two_sided": 0.0814592703648176,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.006385773712506371,
+          "p_two_sided": 0.6776611694152923,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.0,
+          "p_two_sided": 1.0,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.007752499637733723,
+          "p_two_sided": 0.5377311344327836,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.020646154974513165,
+          "p_two_sided": 0.11144427786106946,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.4768856447688564,
+        "probe_f1": 0.43340857787810383
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 4
+    },
+    {
+      "name": "neuralchemy",
+      "publisher_split": true,
+      "raw_count": {
+        "train": {
+          "benign": 1741,
+          "harmful": 2650
+        },
+        "test": {
+          "benign": 390,
+          "harmful": 552
+        }
+      },
+      "notes": "Publisher train/test split preserved. group_id is used to deduplicate paraphrases within each split, so paraphrases of the same row never appear twice.",
+      "config": {
+        "so_n": 25,
+        "conv_len": 4,
+        "n_per_type": 500,
+        "test_size": 0.4,
+        "seed": 5,
+        "holonomy_scale": 0.1
+      },
+      "pool_sizes": {
+        "train_benign": 1741,
+        "train_harmful": 2650,
+        "test_benign": 390,
+        "test_harmful": 552,
+        "probe_train_benign": 435,
+        "probe_train_harmful": 662
+      },
+      "embedding": {
+        "model": "minishlab/potion-base-32M",
+        "revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f",
+        "dim": 512
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.8844221105527639,
+          "precision": 0.8888888888888888,
+          "recall": 0.88,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 4
+        },
+        "holonomy": {
+          "f1": 0.8655256723716381,
+          "precision": 0.84688995215311,
+          "recall": 0.885,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "raw_mean": {
+          "f1": 0.8817733990147784,
+          "precision": 0.8689320388349514,
+          "recall": 0.895,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 512
+        },
+        "random_proj": {
+          "f1": 0.8600508905852418,
+          "precision": 0.8756476683937824,
+          "recall": 0.845,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 300
+        },
+        "combined": {
+          "f1": 0.8731707317073171,
+          "precision": 0.8523809523809524,
+          "recall": 0.895,
+          "n_train": 600,
+          "n_test": 400,
+          "n_features": 304
+        }
+      },
+      "deltas": {
+        "holonomy_vs_probe": {
+          "obs_delta": -0.01889643818112574,
+          "ci_lo": -0.04966096200490066,
+          "ci_hi": 0.015839434707793976,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta": -0.016247726643140226,
+          "ci_lo": -0.04081850112136136,
+          "ci_hi": 0.0063068692961456745,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta": 0.005474781786396377,
+          "ci_lo": -0.021398049933714625,
+          "ci_hi": 0.035842175592401555,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_probe": {
+          "obs_delta": -0.011251378845446802,
+          "ci_lo": -0.04174256152695793,
+          "ci_hi": 0.01941890932259731,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta": -0.008602667307461287,
+          "ci_lo": -0.033618276049633966,
+          "ci_hi": 0.013578536445376294,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "combined_vs_random_proj": {
+          "obs_delta": 0.013119841122075315,
+          "ci_lo": -0.013521897700802428,
+          "ci_hi": 0.043755466119742716,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      },
+      "permutation_tests": {
+        "holonomy_vs_probe": {
+          "obs_abs_delta": 0.01889643818112574,
+          "p_two_sided": 0.23238380809595202,
+          "n_iter": 2000
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_abs_delta": 0.016247726643140226,
+          "p_two_sided": 0.18640679660169915,
+          "n_iter": 2000
+        },
+        "holonomy_vs_random_proj": {
+          "obs_abs_delta": 0.005474781786396377,
+          "p_two_sided": 0.760119940029985,
+          "n_iter": 2000
+        },
+        "combined_vs_probe": {
+          "obs_abs_delta": 0.011251378845446802,
+          "p_two_sided": 0.48125937031484256,
+          "n_iter": 2000
+        },
+        "combined_vs_raw_mean": {
+          "obs_abs_delta": 0.008602667307461287,
+          "p_two_sided": 0.5162418790604698,
+          "n_iter": 2000
+        },
+        "combined_vs_random_proj": {
+          "obs_abs_delta": 0.013119841122075315,
+          "p_two_sided": 0.4017991004497751,
+          "n_iter": 2000
+        }
+      },
+      "shuffled_label_control": {
+        "holonomy_f1": 0.4880382775119617,
+        "probe_f1": 0.2747747747747748
+      },
+      "logm_fallbacks": {
+        "total": 3000,
+        "count": 0,
+        "per_class": {
+          "benign_total": 1500,
+          "benign_fallbacks": 0,
+          "harmful_total": 1500,
+          "harmful_fallbacks": 0
+        }
+      },
+      "seed": 5
+    }
+  ],
+  "summary": {
+    "tensortrust": {
+      "n_seeds": 5,
+      "f1_mean": {
+        "probe": 0.9065800746154455,
+        "holonomy": 0.8227825244429126,
+        "raw_mean": 0.8466186483962475,
+        "random_proj": 0.8036918023992674,
+        "combined": 0.8593621819281889
+      },
+      "f1_seed_range": {
+        "probe": [
+          0.8591549295774648,
+          0.9393939393939394
+        ],
+        "holonomy": [
+          0.801980198019802,
+          0.8461538461538461
+        ],
+        "raw_mean": [
+          0.8280542986425339,
+          0.8603603603603603
+        ],
+        "random_proj": [
+          0.7878787878787878,
+          0.8295964125560538
+        ],
+        "combined": [
+          0.8480392156862745,
+          0.8663594470046083
+        ]
+      },
+      "comparisons": {
+        "holonomy_vs_probe": {
+          "obs_delta_per_seed": [
+            -0.061128850704095905,
+            -0.013001083423618609,
+            -0.12261689745133464,
+            -0.1232071028584949,
+            -0.09903381642512077
+          ],
+          "obs_delta_mean": -0.08379755017253296,
+          "obs_delta_sd": 0.046952657047019224,
+          "obs_delta_mean_ci95": [
+            -0.1420969740478251,
+            -0.025498126297240825
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.004997501249375313,
+            0.42328835582208896,
+            0.0004997501249375312,
+            0.0004997501249375312,
+            0.0004997501249375312
+          ],
+          "fisher_combined_p": 8.928694450460739e-09
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta_per_seed": [
+            -0.03909559660122486,
+            0.018099547511312264,
+            -0.029037936030963496,
+            -0.042119607618770205,
+            -0.027027027027026973
+          ],
+          "obs_delta_mean": -0.023836123953334655,
+          "obs_delta_sd": 0.024305238802279975,
+          "obs_delta_mean_ci95": [
+            -0.05401506394187094,
+            0.0063428160352016275
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.009495252373813094,
+            0.18590704647676162,
+            0.04247876061969016,
+            0.0069965017491254375,
+            0.02048975512243878
+          ],
+          "fisher_combined_p": 6.385066041036946e-05
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta_per_seed": [
+            0.014101410141014181,
+            0.01655743359779238,
+            0.023748719502517668,
+            0.0193719064686807,
+            0.02167414050822125
+          ],
+          "obs_delta_mean": 0.019090722043645238,
+          "obs_delta_sd": 0.003865256769688281,
+          "obs_delta_mean_ci95": [
+            0.014291371868909912,
+            0.023890072218380562
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.4672663668165917,
+            0.2608695652173913,
+            0.11644177911044477,
+            0.29685157421289354,
+            0.18990504747626186
+          ],
+          "fisher_combined_p": 0.16139802946111037
+        },
+        "combined_vs_probe": {
+          "obs_delta_per_seed": [
+            -0.015069833037623437,
+            0.007058222349972887,
+            -0.07966543260660908,
+            -0.08240471738817778,
+            -0.06600770275384582
+          ],
+          "obs_delta_mean": -0.047217892687256645,
+          "obs_delta_sd": 0.04069215785769037,
+          "obs_delta_mean_ci95": [
+            -0.09774388010837529,
+            0.0033080947338619965
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.40879560219890054,
+            0.6266866566716641,
+            0.0004997501249375312,
+            0.0004997501249375312,
+            0.0004997501249375312
+          ],
+          "fisher_combined_p": 5.39740888205742e-07
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta_per_seed": [
+            0.00696342106524761,
+            0.03815885328490376,
+            0.013913528813762066,
+            -0.00131722214845309,
+            0.005999086644247975
+          ],
+          "obs_delta_mean": 0.012743533531941664,
+          "obs_delta_sd": 0.01519793967415562,
+          "obs_delta_mean_ci95": [
+            -0.0061272010083300524,
+            0.03161426807221338
+          ],
+          "n_seeds_ci_excludes_zero": 1,
+          "perm_p_per_seed": [
+            0.6771614192903548,
+            0.0024987506246876563,
+            0.2748625687156422,
+            0.8895552223888056,
+            0.6131934032983508
+          ],
+          "fisher_combined_p": 0.08471456737873628
+        },
+        "combined_vs_random_proj": {
+          "obs_delta_per_seed": [
+            0.06016042780748665,
+            0.03661673937138388,
+            0.06670018434724323,
+            0.060174291938997815,
+            0.0547002541794962
+          ],
+          "obs_delta_mean": 0.05567037952892155,
+          "obs_delta_sd": 0.011468268192258655,
+          "obs_delta_mean_ci95": [
+            0.04143064379284859,
+            0.06991011526499452
+          ],
+          "n_seeds_ci_excludes_zero": 5,
+          "perm_p_per_seed": [
+            0.0009995002498750624,
+            0.010494752623688156,
+            0.0004997501249375312,
+            0.0009995002498750624,
+            0.0004997501249375312
+          ],
+          "fisher_combined_p": 1.5674794795472735e-10
+        }
+      },
+      "pool_sizes": {
+        "train_benign": 254,
+        "train_harmful": 295,
+        "test_benign": 170,
+        "test_harmful": 197,
+        "probe_train_benign": 63,
+        "probe_train_harmful": 73
+      },
+      "raw_count": {
+        "benign": 424,
+        "harmful": 492
+      },
+      "notes": "Benign = access_code (legitimate user msg). Harmful = attack (adversarial user msg). Both occupy the user role; pre_prompt (system role) is deliberately NOT used."
+    },
+    "deepset": {
+      "n_seeds": 5,
+      "f1_mean": {
+        "probe": 0.7316214498112792,
+        "holonomy": 0.6977961081363458,
+        "raw_mean": 0.7368434262187387,
+        "random_proj": 0.6960459042649882,
+        "combined": 0.7202022497791671
+      },
+      "f1_seed_range": {
+        "probe": [
+          0.7028423772609819,
+          0.7635327635327636
+        ],
+        "holonomy": [
+          0.6905263157894737,
+          0.7206477732793523
+        ],
+        "raw_mean": [
+          0.7186311787072244,
+          0.7829614604462475
+        ],
+        "random_proj": [
+          0.6442953020134228,
+          0.7383966244725738
+        ],
+        "combined": [
+          0.70509977827051,
+          0.7463917525773196
+        ]
+      },
+      "comparisons": {
+        "holonomy_vs_probe": {
+          "obs_delta_per_seed": [
+            -0.042884990253411304,
+            -0.009509043927648508,
+            -0.0399212479176132,
+            -0.020843946601196928,
+            -0.05596747967479676
+          ],
+          "obs_delta_mean": -0.03382534167493334,
+          "obs_delta_sd": 0.018502098088359425,
+          "obs_delta_mean_ci95": [
+            -0.05679873076248397,
+            -0.010851952587382713
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.1409295352323838,
+            0.7606196901549226,
+            0.1584207896051974,
+            0.5137431284357821,
+            0.06096951524237881
+          ],
+          "fisher_combined_p": 0.12924168390059387
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta_per_seed": [
+            -0.062313687166895226,
+            -0.03900071377587433,
+            -0.03516107655144396,
+            -0.032129934210526345,
+            -0.026631178707224423
+          ],
+          "obs_delta_mean": -0.039047318082392854,
+          "obs_delta_sd": 0.013769891903977611,
+          "obs_delta_mean_ci95": [
+            -0.05614489711871937,
+            -0.02194973904606634
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.0004997501249375312,
+            0.01649175412293853,
+            0.047476261869065464,
+            0.062468765617191405,
+            0.059470264867566215
+          ],
+          "fisher_combined_p": 1.2759217014046698e-05
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta_per_seed": [
+            -0.01774885119322156,
+            0.04903803131991058,
+            0.009644835451287137,
+            -0.0268649885583524,
+            -0.0053180076628353
+          ],
+          "obs_delta_mean": 0.0017502038713576918,
+          "obs_delta_sd": 0.02978030319304969,
+          "obs_delta_mean_ci95": [
+            -0.03522692645904478,
+            0.038727334201760166
+          ],
+          "n_seeds_ci_excludes_zero": 1,
+          "perm_p_per_seed": [
+            0.31434282858570717,
+            0.015992003998001,
+            0.6071964017991005,
+            0.13393303348325838,
+            0.7161419290354822
+          ],
+          "fisher_combined_p": 0.09209924105102485
+        },
+        "combined_vs_probe": {
+          "obs_delta_per_seed": [
+            -0.017141010955443958,
+            0.018896753173800795,
+            -0.027294587926673164,
+            0.005113254092845909,
+            -0.03667040854508963
+          ],
+          "obs_delta_mean": -0.011419200032112008,
+          "obs_delta_sd": 0.022993312346136354,
+          "obs_delta_mean_ci95": [
+            -0.0399691681717637,
+            0.01713076810753968
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.5282358820589705,
+            0.5077461269365318,
+            0.33883058470764615,
+            0.8680659670164917,
+            0.18290854572713644
+          ],
+          "fisher_combined_p": 0.5823494367180527
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta_per_seed": [
+            -0.03656970786892788,
+            -0.010594916674425026,
+            -0.022534416560503923,
+            -0.006172733516483508,
+            -0.00733410757751729
+          ],
+          "obs_delta_mean": -0.016641176439571526,
+          "obs_delta_sd": 0.012890342598612459,
+          "obs_delta_mean_ci95": [
+            -0.032646650768780996,
+            -0.0006357021103620512
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.011494252873563218,
+            0.5017491254372813,
+            0.18840579710144928,
+            0.7261369315342329,
+            0.6466766616691654
+          ],
+          "fisher_combined_p": 0.12629116970676413
+        },
+        "combined_vs_random_proj": {
+          "obs_delta_per_seed": [
+            0.007995128104745786,
+            0.07744382842135988,
+            0.022271495442227174,
+            -0.0009077878643095616,
+            0.013979063466871833
+          ],
+          "obs_delta_mean": 0.02415634551417902,
+          "obs_delta_sd": 0.030968053274370123,
+          "obs_delta_mean_ci95": [
+            -0.014295571331062629,
+            0.06260826235942067
+          ],
+          "n_seeds_ci_excludes_zero": 1,
+          "perm_p_per_seed": [
+            0.6221889055472264,
+            0.0009995002498750624,
+            0.23138430784607697,
+            0.9825087456271864,
+            0.3938030984507746
+          ],
+          "fisher_combined_p": 0.03335677051187613
+        }
+      },
+      "pool_sizes": {
+        "train_benign": 343,
+        "train_harmful": 203,
+        "test_benign": 56,
+        "test_harmful": 60,
+        "probe_train_benign": 85,
+        "probe_train_harmful": 50
+      },
+      "raw_count": {
+        "train": {
+          "benign": 343,
+          "harmful": 203
+        },
+        "test": {
+          "benign": 56,
+          "harmful": 60
+        }
+      },
+      "notes": "Publisher train/test split is preserved. label=0 -> benign, label=1 -> injection (per dataset card)."
+    },
+    "neuralchemy": {
+      "n_seeds": 5,
+      "f1_mean": {
+        "probe": 0.895299677074427,
+        "holonomy": 0.8676945105093976,
+        "raw_mean": 0.8828689457628863,
+        "random_proj": 0.864450092143438,
+        "combined": 0.8737797052638028
+      },
+      "f1_seed_range": {
+        "probe": [
+          0.8805970149253731,
+          0.9135802469135802
+        ],
+        "holonomy": [
+          0.841025641025641,
+          0.8926829268292683
+        ],
+        "raw_mean": [
+          0.8522167487684729,
+          0.9041769041769042
+        ],
+        "random_proj": [
+          0.8413098236775819,
+          0.8856447688564477
+        ],
+        "combined": [
+          0.8477157360406091,
+          0.8953771289537713
+        ]
+      },
+      "comparisons": {
+        "holonomy_vs_probe": {
+          "obs_delta_per_seed": [
+            -0.04329312504119698,
+            -0.04067856825650584,
+            -0.020897320084311888,
+            -0.014260381262006794,
+            -0.01889643818112574
+          ],
+          "obs_delta_mean": -0.027605166565029447,
+          "obs_delta_sd": 0.013378586642410224,
+          "obs_delta_mean_ci95": [
+            -0.04421687594576003,
+            -0.010993457184298866
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.01999000499750125,
+            0.00399800099950025,
+            0.17491254372813594,
+            0.3918040979510245,
+            0.23238380809595202
+          ],
+          "fisher_combined_p": 0.002466971656671091
+        },
+        "holonomy_vs_raw_mean": {
+          "obs_delta_per_seed": [
+            -0.01119110774283183,
+            -0.0149264836340951,
+            -0.011493977347635909,
+            -0.022012880899740517,
+            -0.016247726643140226
+          ],
+          "obs_delta_mean": -0.015174435253488716,
+          "obs_delta_sd": 0.00439859186909034,
+          "obs_delta_mean_ci95": [
+            -0.020636008420130005,
+            -0.009712862086847428
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.3828085957021489,
+            0.11094452773613193,
+            0.28835582208895555,
+            0.0814592703648176,
+            0.18640679660169915
+          ],
+          "fisher_combined_p": 0.07047551463793944
+        },
+        "holonomy_vs_random_proj": {
+          "obs_delta_per_seed": [
+            -0.00028418265194085635,
+            -0.0023924389899844245,
+            0.007038157972820591,
+            0.006385773712506371,
+            0.005474781786396377
+          ],
+          "obs_delta_mean": 0.0032444183659596114,
+          "obs_delta_sd": 0.004285448652123678,
+          "obs_delta_mean_ci95": [
+            -0.002076668941533217,
+            0.00856550567345244
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            1.0,
+            0.8680659670164917,
+            0.6186906546726637,
+            0.6776611694152923,
+            0.760119940029985
+          ],
+          "fisher_combined_p": 0.9898151446393374
+        },
+        "combined_vs_probe": {
+          "obs_delta_per_seed": [
+            -0.03660303002622889,
+            -0.04154233222163706,
+            -0.01820311795980889,
+            0.0,
+            -0.011251378845446802
+          ],
+          "obs_delta_mean": -0.021519971810624327,
+          "obs_delta_sd": 0.017377775096700628,
+          "obs_delta_mean_ci95": [
+            -0.04309732951707947,
+            5.738589583081932e-05
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.0399800099950025,
+            0.0034982508745627187,
+            0.23088455772113944,
+            1.0,
+            0.48125937031484256
+          ],
+          "fisher_combined_p": 0.014387056175152235
+        },
+        "combined_vs_raw_mean": {
+          "obs_delta_per_seed": [
+            -0.00450101272786374,
+            -0.015790247599226315,
+            -0.00879977522313291,
+            -0.007752499637733723,
+            -0.008602667307461287
+          ],
+          "obs_delta_mean": -0.009089240499083596,
+          "obs_delta_sd": 0.004125007575264117,
+          "obs_delta_mean_ci95": [
+            -0.014211113897606863,
+            -0.003967367100560329
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.7056471764117941,
+            0.12643678160919541,
+            0.4312843578210895,
+            0.5377311344327836,
+            0.5162418790604698
+          ],
+          "fisher_combined_p": 0.5246764846015607
+        },
+        "combined_vs_random_proj": {
+          "obs_delta_per_seed": [
+            0.006405912363027233,
+            -0.003256202955115639,
+            0.009732360097323589,
+            0.020646154974513165,
+            0.013119841122075315
+          ],
+          "obs_delta_mean": 0.009329613120364733,
+          "obs_delta_sd": 0.00879691629739322,
+          "obs_delta_mean_ci95": [
+            -0.0015932011413204057,
+            0.02025242738204987
+          ],
+          "n_seeds_ci_excludes_zero": 0,
+          "perm_p_per_seed": [
+            0.6451774112943528,
+            0.8255872063968016,
+            0.4547726136931534,
+            0.11144427786106946,
+            0.4017991004497751
+          ],
+          "fisher_combined_p": 0.5275767435394781
+        }
+      },
+      "pool_sizes": {
+        "train_benign": 1741,
+        "train_harmful": 2650,
+        "test_benign": 390,
+        "test_harmful": 552,
+        "probe_train_benign": 435,
+        "probe_train_harmful": 662
+      },
+      "raw_count": {
+        "train": {
+          "benign": 1741,
+          "harmful": 2650
+        },
+        "test": {
+          "benign": 390,
+          "harmful": 552
+        }
+      },
+      "notes": "Publisher train/test split preserved. group_id is used to deduplicate paraphrases within each split, so paraphrases of the same row never appear twice."
+    }
+  },
+  "fdr_table": {
+    "tensortrust": {
+      "holonomy_vs_probe": {
+        "fisher_p": 8.928694450460739e-09,
+        "bh_q": 8.035825005414665e-08
+      },
+      "holonomy_vs_raw_mean": {
+        "fisher_p": 6.385066041036946e-05,
+        "bh_q": 0.00022986237747733008
+      },
+      "holonomy_vs_random_proj": {
+        "fisher_p": 0.16139802946111037,
+        "bh_q": 0.20751175216428477
+      },
+      "combined_vs_probe": {
+        "fisher_p": 5.39740888205742e-07,
+        "bh_q": 3.2384453292344517e-06
+      },
+      "combined_vs_raw_mean": {
+        "fisher_p": 0.08471456737873628,
+        "bh_q": 0.15070784899258613
+      },
+      "combined_vs_random_proj": {
+        "fisher_p": 1.5674794795472735e-10,
+        "bh_q": 2.8214630631850923e-09
+      }
+    },
+    "deepset": {
+      "holonomy_vs_probe": {
+        "fisher_p": 0.12924168390059387,
+        "bh_q": 0.17895002386236075
+      },
+      "holonomy_vs_raw_mean": {
+        "fisher_p": 1.2759217014046698e-05,
+        "bh_q": 5.741647656321014e-05
+      },
+      "holonomy_vs_random_proj": {
+        "fisher_p": 0.09209924105102485,
+        "bh_q": 0.15070784899258613
+      },
+      "combined_vs_probe": {
+        "fisher_p": 0.5823494367180527,
+        "bh_q": 0.6166052859367617
+      },
+      "combined_vs_raw_mean": {
+        "fisher_p": 0.12629116970676413,
+        "bh_q": 0.17895002386236075
+      },
+      "combined_vs_random_proj": {
+        "fisher_p": 0.03335677051187613,
+        "bh_q": 0.0750527336517213
+      }
+    },
+    "neuralchemy": {
+      "holonomy_vs_probe": {
+        "fisher_p": 0.002466971656671091,
+        "bh_q": 0.007400914970013273
+      },
+      "holonomy_vs_raw_mean": {
+        "fisher_p": 0.07047551463793944,
+        "bh_q": 0.14095102927587888
+      },
+      "holonomy_vs_random_proj": {
+        "fisher_p": 0.9898151446393374,
+        "bh_q": 0.9898151446393375
+      },
+      "combined_vs_probe": {
+        "fisher_p": 0.014387056175152235,
+        "bh_q": 0.03699528730753432
+      },
+      "combined_vs_raw_mean": {
+        "fisher_p": 0.5246764846015607,
+        "bh_q": 0.5935238364819129
+      },
+      "combined_vs_random_proj": {
+        "fisher_p": 0.5275767435394781,
+        "bh_q": 0.5935238364819129
+      }
+    }
+  }
+}

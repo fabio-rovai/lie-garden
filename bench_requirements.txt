@@ -1,0 +1,7 @@
+# Pinned for v3 evaluation reproducibility (see scripts/run_v3_evaluation.py)
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.5.2
+model2vec==0.7.0
+pandas==2.2.3
+pyarrow==17.0.0
