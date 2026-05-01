@@ -216,8 +216,14 @@ HARMFUL_TRAIN = [
 # ---------------------------------------------------------------------------
 
 def commit_offer(offer_str: str, nonce: str) -> str:
+    """Hash-based commitment over (offer, nonce).
+
+    Returns the full 256-bit SHA-256 digest as 64 hex chars. The nonce MUST
+    be fresh for each commitment — reusing a nonce across rounds for the same
+    offer string lets a counterparty link commitments to offers.
+    """
     data = f"lie_garden_commit:{offer_str}:{nonce}"
-    return hashlib.sha256(data.encode()).hexdigest()[:16]
+    return hashlib.sha256(data.encode()).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -368,6 +374,8 @@ class LieGardenAgent:
         self.tracker = HolonomyTracker(n=4)
         self.chat_index = 0
         self.arena_index = 0
+        self.opponent_messages_analyzed = 0
+        self.reservation_confirmed = False
 
         print("[LG] Training directional probe...")
         self.probe.train(BENIGN_TRAIN, HARMFUL_TRAIN)
@@ -381,6 +389,7 @@ class LieGardenAgent:
         dir_score = self.probe.score_text(text)
         is_harmful = self.probe.is_harmful(text)
         scar = self.tracker.step(text, self.probe)
+        self.opponent_messages_analyzed += 1
 
         status = "CLEAN"
         if is_harmful:
@@ -405,11 +414,21 @@ class LieGardenAgent:
         return result
 
     def _poll_operator(self, challenge_id: str, max_wait: int = 60) -> list[dict]:
-        """Poll for operator messages. Returns list of messages."""
+        """Poll for operator messages.
+
+        Logs every transport error (auth, network, malformed JSON) instead of
+        silently swallowing them — an empty return value must mean "no new
+        messages", not "we couldn't tell". Aborts the poll after
+        MAX_CONSECUTIVE_ERRORS failures so the agent doesn't continue running
+        against a dead channel and emit a fake-CLEAN verdict.
+        """
         all_msgs = []
+        consecutive_errors = 0
+        MAX_CONSECUTIVE_ERRORS = 5
         for _ in range(max_wait // 2):
             try:
                 messages = self.client.sync(challenge_id, self.arena_index)
+                consecutive_errors = 0
                 if messages:
                     for msg in messages:
                         all_msgs.append(msg)
@@ -419,25 +438,41 @@ class LieGardenAgent:
                         print(f"\n[{sender}] {content[:200]}")
                         self.arena_index = max(self.arena_index, idx + 1)
                     return all_msgs
-            except Exception:
-                pass
+            except Exception as e:
+                consecutive_errors += 1
+                print(f"[Arena] sync error ({type(e).__name__}): {e}")
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    raise RuntimeError(
+                        f"_poll_operator: {consecutive_errors} consecutive transport errors; "
+                        "aborting rather than emit verdicts on a dead channel"
+                    ) from e
             time.sleep(2)
         return all_msgs
 
     def _poll_chat(self, challenge_id: str, max_wait: int = 45) -> list[dict]:
-        """Poll for new chat messages from opponent."""
+        """Poll for new chat messages from opponent. See _poll_operator for
+        the consecutive-error abort policy."""
         new_msgs = []
+        consecutive_errors = 0
+        MAX_CONSECUTIVE_ERRORS = 5
         for _ in range(max_wait // 3):
             try:
                 chat_msgs = self.client.read_chat(challenge_id, self.chat_index)
+                consecutive_errors = 0
                 if chat_msgs:
                     for msg in chat_msgs:
                         new_msgs.append(msg)
                         idx = msg.get("index", self.chat_index + 1)
                         self.chat_index = max(self.chat_index, idx + 1)
                     return new_msgs
-            except Exception:
-                pass
+            except Exception as e:
+                consecutive_errors += 1
+                print(f"[Arena] chat sync error ({type(e).__name__}): {e}")
+                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS:
+                    raise RuntimeError(
+                        f"_poll_chat: {consecutive_errors} consecutive transport errors; "
+                        "aborting rather than emit verdicts on a dead channel"
+                    ) from e
             time.sleep(3)
         return new_msgs
 
@@ -460,22 +495,31 @@ class LieGardenAgent:
         except Exception as e:
             print(f"[Arena] Profile update failed: {e}")
 
-        # Parse reservation value from initial operator message
+        # Parse reservation value from initial operator message.
+        # If the operator never confirms a reservation we refuse to play —
+        # otherwise the agent silently negotiates against a fictitious default.
         print("[Arena] Reading reservation value...")
-        my_minimum = 20
+        my_minimum: int | None = None
         op_msgs = self._poll_operator(challenge_id, max_wait=30)
         for msg in op_msgs:
             content = msg.get("content", "")
             m = re.search(r'reservation value\s*(?:is)?[:\s]+(\d+)', content, re.I)
             if m:
                 my_minimum = int(m.group(1))
+                self.reservation_confirmed = True
                 print(f"[LG] Reservation value: {my_minimum}")
+        if my_minimum is None:
+            raise RuntimeError(
+                "operator never sent a 'reservation value: N' message; "
+                "refusing to negotiate against an unverified default"
+            )
 
         # Wait for "game started" + "Player N's turn" messages
         print("[Arena] Waiting for game to start...")
         my_player_num = None
-        total = 100
-        nonce = secrets.token_hex(8)
+        total: int | None = None
+        # Nonce is per-round, not session-wide: reusing one nonce across multiple
+        # commitments lets a counterparty link the commitment to a known offer.
         manipulation_detected = False
         game_ended = False
         round_num = 0
@@ -494,10 +538,16 @@ class LieGardenAgent:
                 time.sleep(2)
                 continue
 
-            # Parse total
+            # Parse total. Until we see it confirmed by the operator we won't
+            # propose or accept anything — a missing/garbled total would
+            # otherwise let us bargain against a default like 100 that bears
+            # no relation to the actual game.
             tm = re.search(r'total.*?split[:\s]+(\d+)', all_text, re.I)
             if tm:
                 total = int(tm.group(1))
+            if total is None:
+                time.sleep(2)
+                continue
 
             # Track rounds
             rm = re.search(r'round\s+(\d+)/(\d+)', all_text, re.I)
@@ -611,6 +661,8 @@ class LieGardenAgent:
                 else:
                     offer_str = f"{opponent_share} {my_share}"
 
+                # Fresh 256-bit nonce per round — never reuse across rounds.
+                nonce = secrets.token_hex(32)
                 commitment = commit_offer(offer_str, nonce)
 
                 print(f"\n[LG] My turn (Player {my_player_num}), Round {round_num}")
@@ -649,13 +701,22 @@ class LieGardenAgent:
         print(f"\n{'='*60}")
         print(f"  LIE GARDEN SESSION REPORT")
         print(f"{'='*60}")
+        print(f"  Opponent messages analysed: {self.opponent_messages_analyzed}")
         print(f"  Final holonomy scar: {self.tracker.scar:.6f}")
         orth = np.linalg.norm(
             self.tracker.state @ self.tracker.state.T - np.eye(4)
         )
         print(f"  State orthogonality: {orth:.2e}")
-        if self.tracker.scar < 0.1:
-            print(f"  Verdict: CLEAN — opponent trajectory shows no manipulation")
+
+        # A scar near zero means nothing if the opponent never sent any chat
+        # messages — calling that "CLEAN" would conflate "verified clean" with
+        # "no data observed". Refuse the verdict in that case.
+        if self.opponent_messages_analyzed == 0:
+            print(f"  Verdict: INSUFFICIENT DATA — no opponent messages were "
+                  f"analysed; cannot judge trajectory")
+        elif self.tracker.scar < 0.1:
+            print(f"  Verdict: CLEAN — opponent trajectory shows no manipulation "
+                  f"({self.opponent_messages_analyzed} messages)")
         elif self.tracker.scar < 0.3:
             print(f"  Verdict: MINOR DEVIATION — some anomalous messages detected")
         else:
