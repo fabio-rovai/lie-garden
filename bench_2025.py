@@ -240,8 +240,13 @@ def main():
     print(f"  {'Model':<45} {'Dim':>5} {'F1':>6} {'Subtle':>8} {'Sep':>8}")
     print(f"  {'-'*75}")
 
-    # GloVe baseline
-    print(f"  {'GloVe-50 (2014, baseline from Rust)' :<45} {'50':>5} {'0.90':>6} {'0.60':>8} {'n/a':>8}")
+    # NOTE: this script does NOT recompute the GloVe-50 baseline.
+    # Historical numbers from `examples/directional_detection.rs` (Rust hot
+    # path) are quoted in the README; do not interpolate them here as if
+    # they were measured in this run. To get a real baseline, run the Rust
+    # example separately and paste its numbers.
+    print(f"\n  (GloVe-50 baseline not recomputed in this script — "
+          f"see README and Rust directional_detection.rs)")
 
     for name, results in all_results.items():
         # Best F1
@@ -252,7 +257,6 @@ def main():
     # Also show: at dim=50 for direct comparison
     print(f"\n  {'Model':<45} {'F1@50':>6} {'Sub@50':>8}")
     print(f"  {'-'*60}")
-    print(f"  {'GloVe-50 (2014, baseline)' :<45} {'0.90':>6} {'0.60':>8}")
     for name, results in all_results.items():
         d50 = [r for r in results if r[0] == 50]
         if d50:

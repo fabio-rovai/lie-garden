@@ -21,6 +21,7 @@ The question we're honestly answering:
 """
 import json
 import hashlib
+import sys
 import time
 
 import numpy as np
@@ -78,12 +79,45 @@ def skew_to_vec(A):
     return np.array([A[i, j] for i in range(n) for j in range(i + 1, n)])
 
 
+_LOGM_FALLBACKS = {"count": 0, "total": 0}
+
+
 def safe_logm(R):
+    _LOGM_FALLBACKS["total"] += 1
     try:
         L = logm(R)
         return np.real((L - L.T) / 2.0)
-    except Exception:
+    except Exception as e:
+        _LOGM_FALLBACKS["count"] += 1
+        # Returning zeros here makes feature extraction continue, but the
+        # zero vector is indistinguishable from a benign step. Track and
+        # warn so a run dominated by fallbacks isn't reported as a
+        # successful experiment.
+        if _LOGM_FALLBACKS["count"] <= 5 or _LOGM_FALLBACKS["count"] % 100 == 0:
+            print(
+                f"WARN: safe_logm fallback #{_LOGM_FALLBACKS['count']}: {type(e).__name__}: {e}",
+                file=sys.stderr,
+            )
         return np.zeros_like(R)
+
+
+def assert_logm_fallbacks_acceptable(threshold: float = 0.05):
+    total = _LOGM_FALLBACKS["total"]
+    fallbacks = _LOGM_FALLBACKS["count"]
+    if total == 0:
+        return
+    rate = fallbacks / total
+    print(
+        f"\nlogm fallbacks: {fallbacks}/{total} ({rate:.1%})",
+        file=sys.stderr,
+    )
+    if rate > threshold:
+        raise RuntimeError(
+            f"safe_logm hit the zero-fallback path on {rate:.1%} of calls "
+            f"(>{threshold:.0%}); features for those steps are zero vectors "
+            "and any reported F1 is unreliable. Investigate before quoting "
+            "these numbers."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -562,3 +596,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    assert_logm_fallbacks_acceptable()

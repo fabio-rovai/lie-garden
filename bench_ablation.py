@@ -370,16 +370,10 @@ def test_attack_and_recover(benign_vecs, attack_vecs, calibration_vecs):
         "note": f"scar persists: {scar_after_attack:.4f} → {scar_after_recovery:.4f}",
     }
 
-    # --- Baseline 2: Sliding window (on recovery window only) ---
-    # After recovery, the window contains only benign messages
-    recovery_window = scenario_vecs[9:12]  # Last 3 messages (all benign)
-    # Would a sliding window classifier flag this? No — it only sees benign.
-    results["sliding_window"] = {
-        "after_attack": "N/A (window sees attack)",
-        "after_recovery": "Window sees only benign",
-        "detected": False,
-        "note": "Window clears after benign messages resume",
-    }
+    # Sliding-window recovery baseline removed: previous code hardcoded
+    # "detected: False" with no measurement, which a reviewer would (rightly)
+    # flag as fabricated. Sliding-window F1 is measured separately in main()
+    # via build_sequences/evaluate_sliding_window — refer to that table.
 
     return results
 
@@ -513,20 +507,15 @@ def main():
             detected = "YES" if result["detected"] else "NO"
             print(f"    [{method}]  Detected after recovery: {detected}  ({result['note']})")
 
-    # ── Summary table ──
+    # ── Summary ──
     print(f"\n\n{'=' * 80}")
     print("  ABLATION SUMMARY")
     print(f"{'=' * 80}")
-    print("""
-  The table below will be populated from the results above.
-  Run this script to get actual numbers.
-
-  Key finding: The holonomy scar is the ONLY signal that detects
-  attack-and-recover patterns, because non-commutative group
-  multiplication means path A→B→A ≠ A→A→A on the manifold.
-  All flat-space methods (cosine, sliding window, cumulative drift)
-  lose the attack signal once benign messages resume.
-""")
+    # No hardcoded conclusion here. The previous version printed a definitive
+    # "Key finding: holonomy scar is the ONLY signal that detects attack-and-
+    # recover" *regardless of what the numerical results above showed*. Read
+    # the per-method numbers above; do not rely on a triple-quoted summary
+    # to interpret them.
 
 
 if __name__ == "__main__":

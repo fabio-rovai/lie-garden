@@ -373,12 +373,15 @@ def main():
         f1_30 = results.get(30, {}).get("f1", 0)
         print(f"  {name:<40} {best_f1:>8.3f} {best_dim:>6} {f1_50:>7.3f} {f1_30:>7.3f}")
 
-    print(f"\n  Baseline (synthetic data, from Rust directional_detection.rs):")
-    print(f"  {'GloVe-50, 30 test examples':<40} {'0.900':>8} {'50':>6}")
+    # Baseline NOT recomputed here. Do not quote a hardcoded GloVe-50 F1 as if
+    # this script produced it; run the Rust example separately.
 
     print(f"\n  Key: InjecAgent = indirect prompt injection in agent tool responses (Zhan et al. 2024)")
     print(f"       TensorTrust = human-crafted prompt hijacking from competitive game (Toyer et al. 2024)")
-    print(f"       Holonomy scars detect 100% of attack+recovery scenarios (non-erasable geometric evidence)")
+    # The "100% of attack+recovery scenarios" line was a hardcoded string
+    # not derived from any computation in this script — removed. honest_ablation.py
+    # and holonomy_v2.py later document that holonomy IS partially erasable
+    # and dataset-dependent.
 
 
 if __name__ == "__main__":

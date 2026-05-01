@@ -242,14 +242,14 @@ def main():
             print(f"  FAILED: {e}")
             continue
 
-    # ─── Summary comparison with GloVe-50 baseline ───
+    # ─── Summary ───
     print(f"\n{'='*80}")
     print(f"  COMPARISON SUMMARY")
     print(f"{'='*80}")
-    print(f"  GloVe-50 (from Rust directional_detection.rs):")
-    print(f"    dim=10: F1=0.82, Subtle=0.30")
-    print(f"    dim=20: F1=0.90, Subtle=0.40")
-    print(f"    dim=50: F1=0.90, Subtle=0.60")
+    print(f"  GloVe-50 baseline NOT recomputed in this script.")
+    print(f"  Run `cargo run --example directional_detection --release` for")
+    print(f"  measured GloVe-50 numbers; do not quote historical figures as")
+    print(f"  if produced by this run.")
     print(f"\n  See above for sentence transformer results.")
 
 
