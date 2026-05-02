@@ -6,9 +6,9 @@
 
 [![CI](https://github.com/fabio-rovai/lie-garden/actions/workflows/ci.yml/badge.svg)](https://github.com/fabio-rovai/lie-garden/actions/workflows/ci.yml)
 
-Geometric trust infrastructure for AI agents: **deterministic confinement on Lie group manifolds**, a **complete cryptographic primitive set** for verifiable agent negotiation (Pedersen commitments, Schnorr signatures, ZK proofs, Diffie–Hellman, Merkle lineage), and a **single-message detection layer** built from holonomy features.
+Geometric trust infrastructure for AI agents: **deterministic confinement on Lie group manifolds**, a **complete cryptographic primitive set** for verifiable agent negotiation (Pedersen commitments, Schnorr signatures, ZK proofs, Diffie–Hellman, Merkle lineage, STARK-style transcript proofs), and a **single-message detection layer** built from holonomy features.
 
-> **Scope note (v2, 2026-05).** The project's earlier framing emphasised multi-step prompt-injection detection. Under proper methodology (`bench_v3`) that empirical claim does not hold against capacity-matched neural baselines. The defensible scope is now (1) the mathematical confinement guarantee, (2) the cryptographic negotiation primitives, and (3) single-message detection on adversarial datasets. See [issue #1](https://github.com/fabio-rovai/lie-garden/issues/1) for the full record.
+> **Scope note (v2.1, 2026-05).** The project's earlier framing emphasised multi-step prompt-injection detection. Across eight mathematical frameworks (holonomy, BCH commutators, Wilson loops, path signatures, persistent homology, Wasserstein OT, spectral, convex-hull calipers, deviation / rhythm / band-ratio) tested across three public datasets at multiple conversation lengths and sample sizes, **no structural feature beats a 512-d mean-pooled embedding** on multi-step classification. The discriminative signal in this benchmark family is captured by the F_0 component of the conversation's DFT — i.e. mean-pooling — and structural sequential information adds no incremental F1. Multi-step empirical claims have been retired. Defensible contributions are below. Full investigation log in [issue #1](https://github.com/fabio-rovai/lie-garden/issues/1).
 
 ## What's actually claimed
 
@@ -17,15 +17,15 @@ Three things, each backed by code or proof:
 | Claim | Evidence | Where |
 | --- | --- | --- |
 | **Deterministic confinement** — every step `text → algebra → exp → multiply` produces an on-group element by construction. The Frobenius norm of an SO(n) element is exactly `√n`, with zero floating-point drift across 20+ steps. | Group closure axiom (mathematical proof) + proptest property tests | [`src/lie/`](src/lie/), [`src/circuit/`](src/circuit/), [`tests/`](tests/) |
-| **Cryptographic negotiation primitives in MCP form** — Pedersen commitments, Schnorr signatures, ZK proofs of knowledge, Diffie–Hellman key agreement, Merkle-lineage audit trail. STARK soundness paths reject empty Merkle authentications. | 94 lib tests + Criterion benchmarks (verify in 6.8 µs / 62 µs) | [`src/crypto/`](src/crypto/), [`benches/hot_path.rs`](benches/hot_path.rs) |
+| **Cryptographic negotiation primitives in MCP form** — Pedersen commitments, Schnorr signatures, ZK proofs of knowledge, Diffie–Hellman key agreement, Merkle-lineage audit trail, STARK-style transcript proofs. STARK soundness paths reject empty Merkle authentications; the cryptographic-erasure attack (`state⁻¹·ref_state`) is detectable via the lineage chain even after geometric reversal. | 94 lib tests + 4 non-erasability tests + Criterion benchmarks (verify in 6.8 µs / 62 µs) | [`src/crypto/`](src/crypto/), [`tests/non_erasable_lineage_test.rs`](tests/non_erasable_lineage_test.rs), [`benches/hot_path.rs`](benches/hot_path.rs) |
 | **Single-message detection** — on TensorTrust (1,552 samples, sample-level split, no leakage) SO(10) holonomy with log-matrix features achieves F1 = 0.877 vs raw embedding F1 = 0.821, bootstrap 95 % CI for the lift = [+0.019, +0.089]. | `holonomy_honest.py` reproducible run | [`holonomy_honest.py`](holonomy_honest.py) |
 
 ## What's *not* claimed
 
-Two earlier framings have been retired:
+Two earlier framings have been retired with empirical evidence:
 
-- **Multi-step prompt-injection detection.** Tested under `bench_v3` (text-level dedup, randomised attack position, capacity-matched baselines, BCa bootstrap, BH-FDR) on three datasets across five seeds. Holonomy did not lift F1 over a simple linear probe, and a follow-up split-attack benchmark showed holonomy is parity with — not better than — a 512-dim raw mean embedding baseline. Multi-step claims are paused until a regime is found where holonomy specifically beats capacity-matched neural baselines.
-- **"Non-erasable" geometric scar.** [`holonomy_honest.py:591`](holonomy_honest.py) explicitly lists this under "WHAT WE CANNOT CLAIM". The defensible statement is "persistent residue under non-commutative composition" — harder to fully erase without knowledge of the calibrated reference state, but not mathematically irreversible.
+- **Multi-step prompt-injection detection.** Investigated across eight mathematical frameworks in `bench_v3.py` → `bench_v6_proper.py`, on three public datasets (TensorTrust, Neuralchemy, Deepset), at conv_len ∈ {4, 5, 6, 8, 20}, with multi-seed paired bootstrap and BH-FDR correction. Methods tested with corrected implementations (Gaussian projection instead of index-truncation, real MST-based H_0 persistence, PCA-projected path signatures, multi-D Sinkhorn OT). **Verdict**: the F_0 component of the conversation's time-axis DFT (= raw mean-pooled embedding) carries essentially the entire discriminative signal; non-DC frequencies are near-chance-level individually. No structural feature provides incremental F1 over raw_mean. The ARIA Track 2.2 negotiation work has been refocused on the cryptographic / verifiable-trajectory layer where Lie Garden's primitives directly apply.
+- **"Non-erasable" geometric scar** (in the strong sense). The geometric state IS reversible — `state⁻¹·ref_state` returns it to identity. The defensible cryptographic statement is now formalised in [`tests/non_erasable_lineage_test.rs`](tests/non_erasable_lineage_test.rs): the Merkle-lineage hash chain that recorded the deviation step *cannot* be erased without breaking SHA-256, and any tampering produces a falsifiable verification failure.
 
 ## Architecture
 
@@ -104,17 +104,23 @@ Reproduced from `holonomy_honest.py`. Sample-level train/test splits with no lea
 | Closure axiom | Mathematical guarantee — exp produces on-group elements; multiplication stays on-group | `src/lie/group.rs` |
 | STARK confinement-proof verify | 62 µs (dim 4) | `benches/hot_path.rs` |
 | STARK lineage-proof verify | 6.8 µs (8 events) | `benches/hot_path.rs` |
+| Empty-input soundness | rejected (was silently passing pre-`bf2dfc7`) | `src/crypto/stark/{lineage,confinement}.rs` |
+| Cryptographic non-erasability | demonstrated under direct DB tampering | `tests/non_erasable_lineage_test.rs` |
 
 ## Hardened benchmarks
 
-Under [`scripts/`](scripts/) and the top-level Python files:
+The Python benchmark suite has six iterations capturing the empirical investigation:
 
-- **`bench_v3.py`** — multi-step random-attack-position benchmark with text-level dedup, capacity-matched baselines (probe / raw_mean / random_proj / combined), BCa bootstrap, permutation test, label-shuffle null control, every RNG threaded through `--seed`. Drives [`scripts/run_v3_evaluation.py`](scripts/run_v3_evaluation.py) which adds Benjamini–Hochberg FDR across the comparison family.
-- **`bench_split_attacks.py`** — splits each attack at sentence boundaries and distributes chunks across positions of a multi-message conversation (the regime where holonomy is *theoretically* supposed to help). Inherits all v3 hardening.
-- **`holonomy_honest.py`** — the reproducible script behind the headline TensorTrust result above. Includes a per-call `safe_logm` fallback counter that aborts the run if more than 5 % of calls hit the zero-feature fallback.
-- **`scripts/fetch_datasets.sh`** — pulls TensorTrust, InjecAgent, Deepset, and Neuralchemy at **pinned git commits and HuggingFace revisions**. Combined with [`bench_requirements.txt`](bench_requirements.txt) and the pinned model revision in `bench_v3.py`, results in `v*_results*.json` are reproducible end-to-end.
+| Bench | Question it asks | Outcome |
+| --- | --- | --- |
+| [`holonomy_honest.py`](holonomy_honest.py) | Single-message holonomy F1 with no leakage | **F1 = 0.877 on TensorTrust**, CI excludes 0 — the headline claim |
+| [`bench_v3.py`](bench_v3.py) | Multi-step random-attack-position; capacity-matched baselines | Holonomy at parity, not above raw_mean |
+| [`bench_split_attacks.py`](bench_split_attacks.py) | Attack split into chunks distributed across the conversation | Holonomy beats simple probe but ties raw_mean |
+| [`bench_v4_lossless.py`](bench_v4_lossless.py) | SO(33) lossless holonomy + path signatures + persistent homology + Wasserstein + spectral | All lose to raw_mean by Δ ∈ [-0.009, -0.363] |
+| [`bench_v5.py`](bench_v5.py) | Time-axis DFT decomposition + high-D CHC | F_0 = DC = raw_mean carries ~all the signal; non-DC near-chance |
+| [`bench_v6_proper.py`](bench_v6_proper.py) | Properly-implemented versions: Gaussian projection, real MST persistence, PCA path sigs, Sinkhorn OT, individual-CHC, conv_len=20 | Same negative result; n=100 trends were sample-size noise |
 
-[NOTICE](NOTICE) records attribution for all four datasets and the embedding model.
+All v3+ benches use BCa bootstrap CIs, paired permutation tests, label-shuffle null controls, and Benjamini–Hochberg FDR across the comparison family. Datasets are pinned at specific git commits / HuggingFace revisions ([`scripts/fetch_datasets.sh`](scripts/fetch_datasets.sh)); dependencies are pinned in [`bench_requirements.txt`](bench_requirements.txt). [`NOTICE`](NOTICE) records attribution.
 
 ## Inspect AI integration (local)
 
@@ -126,17 +132,17 @@ inspect eval inspect_task.py@monitored_agent --model anthropic/claude-haiku-4-5-
 inspect eval inspect_task.py@injection_detection_high_sensitivity --model anthropic/claude-haiku-4-5-20251001
 ```
 
-A previous submission of these tasks to the `inspect_evals` repository (PR #1272) was closed; the methodology improvements requested during that review have since been folded back into `bench_v3` and into the local scorer (e.g. labelling against `expected_pass` rather than the detector's own verdict).
+A previous submission to the `inspect_evals` repository (PR #1272) was closed; the methodology improvements requested during that review are folded back into [`bench_v3.py`](bench_v3.py) and the local scorer.
 
 ## Embedding pipeline
 
 The text → algebra chokepoint (`circuit::map`) converts arbitrary text into Lie algebra coefficients:
 
-```
+```text
 text → tokenize → embed → JL project → algebra coefficients
 ```
 
-Default Rust hot-path embedding is GloVe-50 (top-10k words, ~2 MB, bundled at compile time). The Python benchmarks use **Model2Vec `minishlab/potion-base-32M`** at pinned revision `1e5a03f8eeb2c98b928fbbd846f22f816360919f` for reproducibility (~0.07 ms / text). The geometric layer is embedding-agnostic; `map_to_algebra` runs once per turn, so transformer-based embeddings add negligible latency relative to LLM generation.
+Default Rust hot-path embedding is GloVe-50 (top-10k words, ~2 MB, bundled at compile time). The Python benchmarks use **Model2Vec `minishlab/potion-base-32M`** at pinned revision `1e5a03f8eeb2c98b928fbbd846f22f816360919f` for reproducibility (~0.07 ms / text).
 
 | Embedding | Year | Dim | InjecAgent F1 | TensorTrust F1 | Latency |
 | --- | --- | --- | --- | --- | --- |
@@ -152,7 +158,7 @@ The InjecAgent benchmark has only 17 benign samples — its F1 numbers are not r
 cargo test
 ```
 
-94 lib tests across the four domain layers covering: group axioms (proptest), algebra identities (proptest), representation homomorphism (proptest), gauge holonomy and manipulation detection, crypto binding and soundness (negative cases for wrong key / message / randomness), STARK lineage tamper detection, circuit confinement under adversarial inputs, lineage chain verification (now requires non-empty session — see [`bf2dfc7`](https://github.com/fabio-rovai/lie-garden/commit/bf2dfc7)), and proxy header round-trips. Zero unsafe blocks.
+98 lib + integration tests across the four domain layers covering: group axioms (proptest), algebra identities (proptest), representation homomorphism (proptest), gauge holonomy and manipulation detection, crypto binding and soundness (negative cases for wrong key / message / randomness), STARK lineage tamper detection, circuit confinement under adversarial inputs, lineage chain verification (now requires non-empty session — see [`bf2dfc7`](https://github.com/fabio-rovai/lie-garden/commit/bf2dfc7)), proxy header round-trips, and cryptographic non-erasability under direct DB tampering ([`8f4806a`](https://github.com/fabio-rovai/lie-garden/commit/8f4806a)). Zero unsafe blocks.
 
 ## Key design decisions
 
@@ -163,10 +169,11 @@ cargo test
 - **Hash-derived generators** for Pedersen commitments — nothing-up-my-sleeve
 - **Element-wise algebra multiplication** for DH key exchange — sidesteps non-commutativity of matrix groups
 - **Empty Merkle auth paths reject** in `verify_lineage_proof` and `verify_confinement_proof` — closed in [`bf2dfc7`](https://github.com/fabio-rovai/lie-garden/commit/bf2dfc7) after a soundness audit found that prior versions silently passed when the path was empty
+- **Append-only chain commits behaviour, not state.** The cryptographically non-erasable property lives in the Merkle-lineage hash chain, not in the geometric state itself
 
 ## Repository structure
 
-```
+```text
 src/
   lie/        # group / algebra / representation / invariants
   gauge/      # bundle / connection / curvature / invariance
@@ -176,17 +183,21 @@ src/
   ...
 benches/      # Criterion hot-path benchmarks
 examples/     # 9 runnable detection / trajectory / drift demos
-tests/        # integration tests
-scripts/      # fetch_datasets.sh, run_v3_evaluation.py
+tests/        # integration tests (incl. non-erasability)
+scripts/      # fetch_datasets.sh (pinned), run_v3_evaluation.py
+holonomy_*.py # honest single-message evaluation scripts
+bench_*.py    # multi-step investigation suite (v3 → v6_proper)
 ```
 
 ## Open research questions
 
-1. **Where (if anywhere) does holonomy specifically beat capacity-matched neural baselines?** `bench_v3` and `bench_split_attacks` rule out random-attack-position and naïvely-split-attack regimes on three datasets. Untested: adversarially-chunked attacks, very long trajectories, learned classifiers over per-step algebra states (rather than just the final accumulated state).
-2. **Optimal group selection.** Which Lie group family (SO / SE / GL) and dimension maximises detection power per unit compute? Single-message holonomy lift on TensorTrust grows from SO(5) (no lift) through SO(10) (+0.056 F1, significant) to SO(25) (uncertain — needs reruns under v3 methodology).
-3. **Adaptive thresholds.** Can holonomy thresholds be auto-calibrated from benign traffic without labelled harmful examples? `gravrail calibrate` does this for proxy-side norms; the geometric thresholds are still set manually.
-4. **Multi-agent topology.** How do confinement guarantees compose when multiple agents interact through shared group state? This is the Track 2.2 "Negotiation" question.
-5. **STARK proof overhead in the agent loop.** Per-step ZK proofs for tamper-evident audit cost 62 µs for confinement and 6.8 µs for lineage today — what's the throughput ceiling for a real agent that produces ~10 step / second?
+The empirical multi-step investigation produced a clean negative result on public prompt-injection benchmarks. The genuinely open questions are:
+
+1. **Where does Lie-group structure provide unique value, if anywhere on classification benchmarks?** The negative finding rules out F1 lift on these datasets but does not rule out value in different threat models (multi-agent negotiation, post-hoc audit, dispute resolution). Track 2.2 of the ARIA programme is the next test.
+2. **Can the cryptographic primitives carry a real two-agent negotiation protocol end-to-end?** Pedersen commitments + ZK proofs + signed lineage compose in principle; the reference implementation is the Track 2.2 deliverable.
+3. **What's the minimum-trust regime for trajectory composition across N agents?** When several agents share group state, do confinement guarantees compose? Untested.
+4. **Post-quantum readiness.** Schnorr is not post-quantum; STARK-style proofs (hash-based) are. What's the migration path for the rest of the primitive set?
+5. **Throughput envelope under load.** Per-step costs are 1.4–2.8 ms (geometry) + 6.8 µs (lineage verify) + 62 µs (confinement-STARK verify). The throughput ceiling for an agent producing ~10 step / second is comfortable; the ceiling at ~100 step / second for high-frequency tool-call sequences is unmeasured.
 
 ## License
 
