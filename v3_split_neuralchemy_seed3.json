@@ -1,0 +1,162 @@
+{
+  "config": {
+    "n_chunks": 3,
+    "conv_len": 5,
+    "n_per_type": 400,
+    "test_size": 0.4,
+    "seed": 3,
+    "so_n": 25,
+    "holonomy_scale": 0.1,
+    "consecutive": false,
+    "embedding_model": "minishlab/potion-base-32M",
+    "embedding_revision": "1e5a03f8eeb2c98b928fbbd846f22f816360919f"
+  },
+  "stats": {
+    "attack_source": "neuralchemy",
+    "benign_source": "natural",
+    "n_benign": 2101,
+    "n_attacks_total": 3202,
+    "n_attacks_split": 2131,
+    "n_attacks_skipped": 1071,
+    "chunk_length_min": 20,
+    "chunk_length_median": 35,
+    "chunk_length_max": 2493,
+    "n_chunks_target": 3
+  },
+  "pool_sizes": {
+    "train_benign": 945,
+    "train_attacks": 959,
+    "test_benign": 841,
+    "test_attacks": 853,
+    "probe_benign": 315,
+    "probe_attacks_full": 319
+  },
+  "classifiers": {
+    "probe": {
+      "f1": 0.8737864077669902,
+      "precision": 0.9060402684563759,
+      "recall": 0.84375,
+      "n_train": 480,
+      "n_test": 320,
+      "n_features": 4
+    },
+    "holonomy": {
+      "f1": 0.935064935064935,
+      "precision": 0.972972972972973,
+      "recall": 0.9,
+      "n_train": 480,
+      "n_test": 320,
+      "n_features": 300
+    },
+    "raw_mean": {
+      "f1": 0.9554140127388535,
+      "precision": 0.974025974025974,
+      "recall": 0.9375,
+      "n_train": 480,
+      "n_test": 320,
+      "n_features": 512
+    },
+    "random_proj": {
+      "f1": 0.9230769230769231,
+      "precision": 0.9473684210526315,
+      "recall": 0.9,
+      "n_train": 480,
+      "n_test": 320,
+      "n_features": 300
+    },
+    "combined": {
+      "f1": 0.935064935064935,
+      "precision": 0.972972972972973,
+      "recall": 0.9,
+      "n_train": 480,
+      "n_test": 320,
+      "n_features": 304
+    }
+  },
+  "deltas": {
+    "holonomy_vs_probe": {
+      "obs_delta": 0.06127852729794481,
+      "ci_lo": 0.03274333127034814,
+      "ci_hi": 0.09912649729936061,
+      "n_iter": 2000,
+      "method": "bca"
+    },
+    "holonomy_vs_raw_mean": {
+      "obs_delta": -0.02034907767391847,
+      "ci_lo": -0.04335005008201587,
+      "ci_hi": -0.007072081213884872,
+      "n_iter": 2000,
+      "method": "bca"
+    },
+    "holonomy_vs_random_proj": {
+      "obs_delta": 0.011988011988011915,
+      "ci_lo": -0.008667861092378182,
+      "ci_hi": 0.03672460435167724,
+      "n_iter": 2000,
+      "method": "bca"
+    },
+    "combined_vs_probe": {
+      "obs_delta": 0.06127852729794481,
+      "ci_lo": 0.03274333127034814,
+      "ci_hi": 0.09912649729936061,
+      "n_iter": 2000,
+      "method": "bca"
+    },
+    "combined_vs_raw_mean": {
+      "obs_delta": -0.02034907767391847,
+      "ci_lo": -0.04335005008201587,
+      "ci_hi": -0.007072081213884872,
+      "n_iter": 2000,
+      "method": "bca"
+    },
+    "combined_vs_random_proj": {
+      "obs_delta": 0.011988011988011915,
+      "ci_lo": -0.008667861092378182,
+      "ci_hi": 0.03672460435167724,
+      "n_iter": 2000,
+      "method": "bca"
+    }
+  },
+  "permutation_tests": {
+    "holonomy_vs_probe": {
+      "obs_abs_delta": 0.06127852729794481,
+      "p_two_sided": 0.0004997501249375312,
+      "n_iter": 2000
+    },
+    "holonomy_vs_raw_mean": {
+      "obs_abs_delta": 0.02034907767391847,
+      "p_two_sided": 0.030984507746126936,
+      "n_iter": 2000
+    },
+    "holonomy_vs_random_proj": {
+      "obs_abs_delta": 0.011988011988011915,
+      "p_two_sided": 0.38780609695152424,
+      "n_iter": 2000
+    },
+    "combined_vs_probe": {
+      "obs_abs_delta": 0.06127852729794481,
+      "p_two_sided": 0.0004997501249375312,
+      "n_iter": 2000
+    },
+    "combined_vs_raw_mean": {
+      "obs_abs_delta": 0.02034907767391847,
+      "p_two_sided": 0.030984507746126936,
+      "n_iter": 2000
+    },
+    "combined_vs_random_proj": {
+      "obs_abs_delta": 0.011988011988011915,
+      "p_two_sided": 0.38780609695152424,
+      "n_iter": 2000
+    }
+  },
+  "logm_fallbacks": {
+    "total": 1600,
+    "count": 0,
+    "per_class": {
+      "benign_total": 800,
+      "benign_fallbacks": 0,
+      "harmful_total": 800,
+      "harmful_fallbacks": 0
+    }
+  }
+}
