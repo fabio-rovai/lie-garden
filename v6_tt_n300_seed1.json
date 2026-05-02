@@ -1,0 +1,212 @@
+{
+  "config": {
+    "datasets": [
+      "tensortrust"
+    ],
+    "conv_len": 20,
+    "n_per_type": 300,
+    "test_size": 0.4,
+    "seed": 1,
+    "holo_n": 10,
+    "holo_scale": 0.1,
+    "pca_dim": 20,
+    "sinkhorn_eps": 0.5,
+    "chc_directions": 200,
+    "out": "v6_tt_n300_seed1.json"
+  },
+  "runs": [
+    {
+      "name": "tensortrust",
+      "config": {
+        "conv_len": 20,
+        "n_per_type": 300,
+        "test_size": 0.4,
+        "seed": 1,
+        "holo_n": 10,
+        "holo_scale": 0.1,
+        "pca_dim": 20,
+        "sinkhorn_eps": 0.5,
+        "chc_directions": 200
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7647058823529411,
+          "precision": 0.6842105263157895,
+          "recall": 0.8666666666666667,
+          "n_features": 4
+        },
+        "raw_mean": {
+          "f1": 0.714828897338403,
+          "precision": 0.6573426573426573,
+          "recall": 0.7833333333333333,
+          "n_features": 512
+        },
+        "holonomy_proper": {
+          "f1": 0.5982905982905983,
+          "precision": 0.6140350877192983,
+          "recall": 0.5833333333333334,
+          "n_features": 45
+        },
+        "h0_persistence": {
+          "f1": 0.38,
+          "precision": 0.475,
+          "recall": 0.31666666666666665,
+          "n_features": 24
+        },
+        "path_sig_pca": {
+          "f1": 0.512,
+          "precision": 0.49230769230769234,
+          "recall": 0.5333333333333333,
+          "n_features": 420
+        },
+        "sinkhorn_ot": {
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0,
+          "n_features": 1
+        },
+        "spectral_proper": {
+          "f1": 0.5020576131687243,
+          "precision": 0.4959349593495935,
+          "recall": 0.5083333333333333,
+          "n_features": 22
+        },
+        "chc_individuals": {
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0,
+          "n_features": 1000
+        },
+        "raw_mean_plus_holonomy": {
+          "f1": 0.7181467181467182,
+          "precision": 0.6690647482014388,
+          "recall": 0.775,
+          "n_features": 557
+        },
+        "raw_mean_plus_h0": {
+          "f1": 0.6901960784313725,
+          "precision": 0.6518518518518519,
+          "recall": 0.7333333333333333,
+          "n_features": 536
+        },
+        "raw_mean_plus_path_sig": {
+          "f1": 0.6807017543859649,
+          "precision": 0.5878787878787879,
+          "recall": 0.8083333333333333,
+          "n_features": 932
+        },
+        "raw_mean_plus_sinkhorn": {
+          "f1": 0.7011070110701108,
+          "precision": 0.6291390728476821,
+          "recall": 0.7916666666666666,
+          "n_features": 513
+        },
+        "raw_mean_plus_spectral": {
+          "f1": 0.7142857142857143,
+          "precision": 0.6506849315068494,
+          "recall": 0.7916666666666666,
+          "n_features": 534
+        },
+        "raw_mean_plus_chc": {
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0,
+          "n_features": 1512
+        }
+      },
+      "deltas_vs_raw_mean": {
+        "probe": {
+          "obs_delta": 0.04987698501453808,
+          "ci_lo": -0.016898154778111407,
+          "ci_hi": 0.11715442942013227,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_proper": {
+          "obs_delta": -0.11653829904780477,
+          "ci_lo": -0.2022509451503865,
+          "ci_hi": -0.039170262896403525,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "h0_persistence": {
+          "obs_delta": -0.33482889733840304,
+          "ci_lo": -0.4269677367039848,
+          "ci_hi": -0.23201494458477034,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "path_sig_pca": {
+          "obs_delta": -0.20282889733840304,
+          "ci_lo": -0.2862171891834084,
+          "ci_hi": -0.11689047953577564,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "sinkhorn_ot": {
+          "obs_delta": -0.04816223067173642,
+          "ci_lo": -0.10425184819685482,
+          "ci_hi": 0.0097249379758372,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "spectral_proper": {
+          "obs_delta": -0.21277128416967872,
+          "ci_lo": -0.3040126729434732,
+          "ci_hi": -0.1344548547170023,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "chc_individuals": {
+          "obs_delta": -0.04816223067173642,
+          "ci_lo": -0.10425184819685482,
+          "ci_hi": 0.0097249379758372,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_holonomy": {
+          "obs_delta": 0.0033178208083151084,
+          "ci_lo": -0.017604397688368374,
+          "ci_hi": 0.0244190100947139,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_h0": {
+          "obs_delta": -0.024632818907030507,
+          "ci_lo": -0.05699159054950935,
+          "ci_hi": -0.0050882190015936486,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_path_sig": {
+          "obs_delta": -0.03412714295243813,
+          "ci_lo": -0.07354698605798461,
+          "ci_hi": 0.007481863124223033,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_sinkhorn": {
+          "obs_delta": -0.013721886268292294,
+          "ci_lo": -0.03170274596346332,
+          "ci_hi": 0.0032919941238660675,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_spectral": {
+          "obs_delta": -0.0005431830526887449,
+          "ci_lo": -0.02371244304858569,
+          "ci_hi": 0.024610460793650746,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_chc": {
+          "obs_delta": -0.04816223067173642,
+          "ci_lo": -0.10425184819685482,
+          "ci_hi": 0.0097249379758372,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      }
+    }
+  ]
+}

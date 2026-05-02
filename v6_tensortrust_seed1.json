@@ -1,0 +1,212 @@
+{
+  "config": {
+    "datasets": [
+      "tensortrust"
+    ],
+    "conv_len": 20,
+    "n_per_type": 100,
+    "test_size": 0.4,
+    "seed": 1,
+    "holo_n": 10,
+    "holo_scale": 0.1,
+    "pca_dim": 20,
+    "sinkhorn_eps": 0.5,
+    "chc_directions": 200,
+    "out": "v6_tensortrust_seed1.json"
+  },
+  "runs": [
+    {
+      "name": "tensortrust",
+      "config": {
+        "conv_len": 20,
+        "n_per_type": 100,
+        "test_size": 0.4,
+        "seed": 1,
+        "holo_n": 10,
+        "holo_scale": 0.1,
+        "pca_dim": 20,
+        "sinkhorn_eps": 0.5,
+        "chc_directions": 200
+      },
+      "classifiers": {
+        "probe": {
+          "f1": 0.7333333333333333,
+          "precision": 0.66,
+          "recall": 0.825,
+          "n_features": 4
+        },
+        "raw_mean": {
+          "f1": 0.5573770491803278,
+          "precision": 0.8095238095238095,
+          "recall": 0.425,
+          "n_features": 512
+        },
+        "holonomy_proper": {
+          "f1": 0.5411764705882353,
+          "precision": 0.5111111111111111,
+          "recall": 0.575,
+          "n_features": 45
+        },
+        "h0_persistence": {
+          "f1": 0.18181818181818182,
+          "precision": 0.23076923076923078,
+          "recall": 0.15,
+          "n_features": 24
+        },
+        "path_sig_pca": {
+          "f1": 0.49382716049382713,
+          "precision": 0.4878048780487805,
+          "recall": 0.5,
+          "n_features": 420
+        },
+        "sinkhorn_ot": {
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0,
+          "n_features": 1
+        },
+        "spectral_proper": {
+          "f1": 0.525,
+          "precision": 0.525,
+          "recall": 0.525,
+          "n_features": 22
+        },
+        "chc_individuals": {
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0,
+          "n_features": 1000
+        },
+        "raw_mean_plus_holonomy": {
+          "f1": 0.5333333333333333,
+          "precision": 0.8,
+          "recall": 0.4,
+          "n_features": 557
+        },
+        "raw_mean_plus_h0": {
+          "f1": 0.49122807017543857,
+          "precision": 0.8235294117647058,
+          "recall": 0.35,
+          "n_features": 536
+        },
+        "raw_mean_plus_path_sig": {
+          "f1": 0.6197183098591549,
+          "precision": 0.7096774193548387,
+          "recall": 0.55,
+          "n_features": 932
+        },
+        "raw_mean_plus_sinkhorn": {
+          "f1": 0.5806451612903226,
+          "precision": 0.8181818181818182,
+          "recall": 0.45,
+          "n_features": 513
+        },
+        "raw_mean_plus_spectral": {
+          "f1": 0.5172413793103449,
+          "precision": 0.8333333333333334,
+          "recall": 0.375,
+          "n_features": 534
+        },
+        "raw_mean_plus_chc": {
+          "f1": 0.6666666666666666,
+          "precision": 0.5,
+          "recall": 1.0,
+          "n_features": 1512
+        }
+      },
+      "deltas_vs_raw_mean": {
+        "probe": {
+          "obs_delta": 0.17595628415300546,
+          "ci_lo": -0.0037941305980908674,
+          "ci_hi": 0.35451244859596015,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "holonomy_proper": {
+          "obs_delta": -0.016200578592092563,
+          "ci_lo": -0.1773722405936807,
+          "ci_hi": 0.16411508179570677,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "h0_persistence": {
+          "obs_delta": -0.375558867362146,
+          "ci_lo": -0.5496687567326111,
+          "ci_hi": -0.16949876211157333,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "path_sig_pca": {
+          "obs_delta": -0.06354988868650069,
+          "ci_lo": -0.29434725970906633,
+          "ci_hi": 0.1572245765032262,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "sinkhorn_ot": {
+          "obs_delta": 0.10928961748633881,
+          "ci_lo": -0.0591696184899829,
+          "ci_hi": 0.28106643237002643,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "spectral_proper": {
+          "obs_delta": -0.0323770491803278,
+          "ci_lo": -0.19736163348544267,
+          "ci_hi": 0.14006910096253583,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "chc_individuals": {
+          "obs_delta": 0.10928961748633881,
+          "ci_lo": -0.0591696184899829,
+          "ci_hi": 0.28106643237002643,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_holonomy": {
+          "obs_delta": -0.024043715846994496,
+          "ci_lo": -0.13796107117661655,
+          "ci_hi": 0.0,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_h0": {
+          "obs_delta": -0.06614897900488925,
+          "ci_lo": -0.20257531919433502,
+          "ci_hi": 0.0,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_path_sig": {
+          "obs_delta": 0.06234126067882706,
+          "ci_lo": -0.02787473773896349,
+          "ci_hi": 0.18456145440682759,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_sinkhorn": {
+          "obs_delta": 0.0232681121099948,
+          "ci_lo": 0.0,
+          "ci_hi": 0.15087703391449062,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_spectral": {
+          "obs_delta": -0.04013566986998296,
+          "ci_lo": -0.1603100507816985,
+          "ci_hi": 0.009424603174603141,
+          "n_iter": 2000,
+          "method": "bca"
+        },
+        "raw_mean_plus_chc": {
+          "obs_delta": 0.10928961748633881,
+          "ci_lo": -0.0591696184899829,
+          "ci_hi": 0.28106643237002643,
+          "n_iter": 2000,
+          "method": "bca"
+        }
+      }
+    }
+  ]
+}
