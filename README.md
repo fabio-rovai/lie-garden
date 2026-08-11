@@ -5,6 +5,7 @@
 # Lie Garden
 
 [![CI](https://github.com/fabio-rovai/lie-garden/actions/workflows/ci.yml/badge.svg)](https://github.com/fabio-rovai/lie-garden/actions/workflows/ci.yml)
+[![Sponsor](https://img.shields.io/github/sponsors/fabio-rovai?label=Sponsor&logo=GitHub%20Sponsors&logoColor=EA4AAA&color=EA4AAA)](https://github.com/sponsors/fabio-rovai)
 
 Geometric trust infrastructure for AI agents: **deterministic confinement on Lie group manifolds**, a **complete cryptographic primitive set** for verifiable agent negotiation (Pedersen commitments, Schnorr signatures, ZK proofs, Diffie–Hellman, Merkle lineage, STARK-style transcript proofs), and a **single-message detection layer** built from holonomy features.
 
@@ -202,3 +203,9 @@ The empirical multi-step investigation produced a clean negative result on publi
 ## License
 
 MIT OR Apache-2.0
+
+---
+
+## Sponsor
+
+If this work is useful to you, you can support its continued development through [GitHub Sponsors](https://github.com/sponsors/fabio-rovai).
